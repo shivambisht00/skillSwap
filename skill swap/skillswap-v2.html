@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillSwap — Trade Skills. Grow Together.</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Fraunces:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
+<link rel = "stylesheet" type ="text/css" href="styles.css">
+<script src="video-call.js" defer></script>
+<script src="scripts.js" defer></script>
+</head>
+<body>
+
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav id="nav">
+  <div class="nav-logo" onclick="showPage('home')" style="cursor:pointer">
+    <div class="nav-logo-mark">⇄</div>
+    SkillSwap
+  </div>
+  <nav class="nav-links" id="nav-links">
+    <a class="nav-link active" onclick="showPage('home')" data-page="home">Home</a>
+    <a class="nav-link" onclick="showPage('discover')" data-page="discover">Discover</a>
+    <a class="nav-link auth-only hidden" onclick="showPage('dashboard')" data-page="dashboard">Dashboard</a>
+    <a class="nav-link auth-only hidden" onclick="showPage('messages')" data-page="messages">Messages <span id="msg-badge" class="badge badge-red hidden" style="font-size:10px;">2</span></a>
+    <a class="nav-link auth-only hidden" onclick="showPage('live')" data-page="live">📅 Live Classes</a>
+    <a class="nav-link" onclick="openCommunity()" data-page="community">Community</a>
+  </nav>
+  <div class="nav-right">
+    <!-- Guest -->
+    <div id="nav-guest">
+      <button class="btn btn-ghost btn-sm" onclick="window.location.href='login.html#login'">Log In</button>
+      <button class="btn btn-primary btn-sm" onclick="window.location.href='login.html#signup'">Sign Up Free</button>
+    </div>
+    <!-- Logged in -->
+    <div id="nav-logged" class="hidden" style="display:flex;align-items:center;gap:10px;">
+      <div class="nav-notif" onclick="showToast('🔔 You have 3 new notifications!')"><span>🔔</span><div class="notif-dot"></div></div>
+      <div class="nav-avatar-btn" onclick="showPage('dashboard')">
+        <div class="avatar avatar-sm" id="nav-user-av" style="background:linear-gradient(135deg,#3b4fd8,#0cbfb0)">SJ</div>
+        <span id="nav-user-name" style="font-size:13px;font-weight:600;color:var(--text-primary)">Sarah J.</span>
+        <span style="color:var(--text-muted);font-size:11px">▾</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════ AUTH MODAL ═══════════════ -->
+<div class="overlay hidden" id="auth-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" style="position:relative">
+    <div class="modal-close" onclick="closeModal()">✕</div>
+    <div class="modal-tabs">
+      <div class="modal-tab active" id="tab-login" onclick="switchTab('login')">Log In</div>
+      <div class="modal-tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="form-login">
+      <div class="modal-header">
+        <h2>Welcome back!</h2>
+        <p>Log in to your SkillSwap account</p>
+      </div>
+      <div id="login-error" class="error-msg hidden"></div>
+      <div class="input-group">
+        <label class="input-label">Email</label>
+        <div class="input-with-icon"><span class="input-icon">✉️</span><input class="input-field" id="login-email" type="email" placeholder="you@example.com"></div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Password</label>
+        <div class="input-with-icon"><span class="input-icon">🔒</span><input class="input-field" id="login-pass" type="password" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:20px;"><span style="font-size:13px;color:var(--indigo);cursor:pointer;font-weight:600;">Forgot password?</span></div>
+      <button class="btn btn-primary w-full btn-lg" onclick="doLogin()">Log In →</button>
+      <div class="divider">or continue with</div>
+      <div class="social-login">
+        <button class="social-btn btn-google" type="button" onclick="doSocialLogin('google', 'login', this)">Google</button>
+        <button class="social-btn btn-github" type="button" onclick="doSocialLogin('github', 'login', this)">GitHub</button>
+        <button class="social-btn btn-linkedin" type="button" onclick="doSocialLogin('linkedin', 'login', this)">LinkedIn</button>
+      </div>
+
+      <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--text-muted)">Don't have an account? <span style="color:var(--indigo);font-weight:600;cursor:pointer" onclick="switchTab('signup')">Sign up free</span></p>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="form-signup" class="hidden">
+      <div class="modal-header">
+        <h2>Join SkillSwap</h2>
+        <p>Create your free account and start trading skills</p>
+      </div>
+      <div id="signup-error" class="error-msg hidden"></div>
+      <div class="form-row">
+        <div class="input-group" style="margin-bottom:0">
+          <label class="input-label">First Name</label>
+          <input class="input-field" id="signup-fname" placeholder="First">
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+          <label class="input-label">Last Name</label>
+          <input class="input-field" id="signup-lname" placeholder="Last">
+        </div>
+      </div>
+      <div class="input-group" style="margin-top:14px">
+        <label class="input-label">Email</label>
+        <div class="input-with-icon"><span class="input-icon">✉️</span><input class="input-field" id="signup-email" type="email" placeholder="you@example.com"></div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Password</label>
+        <div class="input-with-icon"><span class="input-icon">🔒</span><input class="input-field" id="signup-pass" type="password" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')doSignup()"></div>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:18px">By signing up you agree to our <span style="color:var(--indigo);cursor:pointer">Terms of Service</span> and <span style="color:var(--indigo);cursor:pointer">Privacy Policy</span>.</p>
+      <button class="btn btn-primary w-full btn-lg" onclick="doSignup()">Create Free Account →</button>
+      <div class="divider">or sign up with</div>
+      
+      <div class="social-login">
+        <button class="social-btn btn-google" type="button" onclick="doSocialLogin('google', 'signup', this)">Google</button>
+        <button class="social-btn btn-github" type="button" onclick="doSocialLogin('github', 'signup', this)">GitHub</button>
+        <button class="social-btn btn-linkedin" type="button" onclick="doSocialLogin('linkedin', 'signup', this)">LinkedIn</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ ONBOARDING MODAL ═══════════════ -->
+<div class="onboard-overlay hidden" id="onboard-overlay">
+  <div class="onboard-modal">
+    <div class="onboard-progress-bar"><div class="onboard-progress-fill" id="onboard-progress" style="width:33%"></div></div>
+    <div class="onboard-body" id="onboard-body"><!-- filled by JS --></div>
+    <div class="onboard-footer">
+      <button class="onboard-back" id="onboard-back" onclick="onboardBack()">← Back</button>
+      <button class="btn btn-primary" id="onboard-next" onclick="onboardNext()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ VIDEO CALL MODAL ═══════════════ -->
+<div class="overlay hidden" id="vcall-overlay" onclick="closeVcall(event)">
+  <div class="vcall-modal">
+    <div class="vcall-main">
+      <div class="vcall-bg-video">
+        <video id="vcall-remote-video" class="vcall-remote-video" autoplay playsinline muted></video>
+        <div class="vcall-remote-placeholder" id="vcall-remote-placeholder">
+          <div class="vcall-caller-av" style="background:linear-gradient(135deg,#f59e0b,#10b981)">MT</div>
+          <div class="vcall-caller-name" id="vcall-name">Marcus T.</div>
+          <div class="vcall-connecting" id="vcall-status">● Connecting…</div>
+        </div>
+      </div>
+      <div class="vcall-self">
+        <video id="vcall-local-video" class="vcall-local-video" autoplay playsinline muted></video>
+        <div class="vcall-self-placeholder" id="vcall-local-placeholder">
+          <div class="avatar avatar-md" id="vcall-self-avatar" style="background:linear-gradient(135deg,var(--indigo),var(--teal))">SJ</div>
+        </div>
+        <div class="vcall-self-label">You</div>
+      </div>
+    </div>
+    <div class="vcall-controls">
+      <div class="vcall-ctrl-group">
+        <button class="vcall-btn vcall-btn-default" id="vcall-mic" title="Mute or unmute microphone" onclick="toggleVcallMic(this)">🎙️</button>
+        <button class="vcall-btn vcall-btn-default" id="vcall-cam" title="Turn camera on/off" onclick="toggleVcallCam(this)">📹</button>
+        <button class="vcall-btn vcall-btn-default" id="vcall-share" title="Share Screen" onclick="toggleVcallScreenShare(this)">🖥️</button>
+        <button class="vcall-btn vcall-btn-default" title="Chat" onclick="showToast('💬 Chat panel opened!')">💬</button>
+      </div>
+      <div class="vcall-info">
+        <div class="vcall-timer" id="vcall-timer">00:00</div>
+        <div class="vcall-name" id="vcall-sub">React Hooks Session</div>
+      </div>
+      <div class="vcall-ctrl-group">
+        <button class="vcall-btn vcall-btn-default" title="Whiteboard" onclick="showToast('📋 Whiteboard opened!')">📋</button>
+        <button class="vcall-btn vcall-btn-default" id="vcall-participants" title="Participants" onclick="toggleVcallParticipants()">👥</button>
+        <button class="vcall-btn vcall-btn-danger" title="End Call" onclick="endVcall()">📵</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE: HOME
+═══════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid-overlay"></div>
+    <div class="hero-inner">
+      <div class="hero-text">
+        <div class="hero-eyebrow"><span class="dot-online"></span> 18,500+ active learners online now</div>
+        <h1>Trade Skills.<br><em>Grow Together.</em></h1>
+        <p class="hero-sub">Connect with experts, swap your knowledge, and learn new skills without spending a single rupee. The ultimate collaborative learning platform.</p>
+        <div class="hero-search">
+          <input type="text" placeholder="What do you want to learn? e.g. React, Figma…" id="hero-search-input">
+          <div class="hero-search-sep"></div>
+          <button class="hero-search-loc">📍 Remote</button>
+          <button class="hero-search-btn" onclick="showPage('discover')">🔍 Search</button>
+        </div>
+        <div class="hero-chips">
+          <span class="hero-chip-label">Popular:</span>
+          <span class="hero-chip" onclick="showPage('discover')">Web Dev</span>
+          <span class="hero-chip" onclick="showPage('discover')">UI/UX Design</span>
+          <span class="hero-chip" onclick="showPage('discover')">Python</span>
+          <span class="hero-chip" onclick="showPage('discover')">Marketing</span>
+          <span class="hero-chip" onclick="showPage('discover')">Spanish</span>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><strong>18.5K+</strong><span>Learners</span></div>
+          <div class="hero-stat"><strong>450+</strong><span>Skill Categories</span></div>
+          <div class="hero-stat"><strong>96%</strong><span>Success Rate</span></div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <!-- Floating info cards -->
+        <div class="floating-card fc-1"><div class="fc-icon">💻</div><div class="font-semibold">React Developer</div><div class="fc-label">Teaches React • Wants Design</div></div>
+        <div class="floating-card fc-2"><div class="fc-icon">🎨</div><div class="font-semibold">UI/UX Designer</div><div class="fc-label">Teaches Figma • Wants Python</div></div>
+        <div class="floating-card fc-3"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">✓</span><div><div class="font-semibold" style="font-size:12px">Swap Accepted!</div><div class="fc-label">Session starts in 10 min</div></div></div></div>
+        <div class="floating-card fc-4"><div style="display:flex;align-items:center;gap:6px;"><span style="color:#22c55e;font-size:16px">★</span><span class="font-semibold" style="font-size:13px">4.9 avg rating</span></div><div class="fc-label" style="margin-top:3px">12,400+ reviews this month</div></div>
+        <!-- 3D scene SVG -->
+        <div class="scene-wrap" style="padding-bottom:50px">
+          <svg viewBox="0 0 360 320" width="360" height="320" xmlns="http://www.w3.org/2000/svg">
+            <!-- Platform shadow -->
+            <ellipse cx="180" cy="305" rx="130" ry="14" fill="rgba(0,0,0,0.35)" />
+            <!-- Platform base -->
+            <rect x="60" y="282" width="240" height="20" rx="8" fill="#1c2d6e"/>
+            <rect x="60" y="282" width="240" height="10" rx="8" fill="#2d3f8e"/>
+            <!-- Person 1 - Left Chair -->
+            <g transform="translate(55,90)">
+              <!-- chair -->
+              <rect x="18" y="155" width="7" height="38" rx="3.5" fill="#1c2d6e"/>
+              <rect x="86" y="155" width="7" height="38" rx="3.5" fill="#1c2d6e"/>
+              <rect x="10" y="165" width="24" height="5" rx="2.5" fill="#2d3f8e"/>
+              <rect x="78" y="165" width="24" height="5" rx="2.5" fill="#2d3f8e"/>
+              <rect x="10" y="140" width="92" height="18" rx="7" fill="#3b4fd8"/>
+              <rect x="10" y="100" width="8" height="52" rx="4" fill="#2d3f8e"/>
+              <rect x="94" y="100" width="8" height="52" rx="4" fill="#2d3f8e"/>
+              <rect x="10" y="100" width="92" height="12" rx="6" fill="#3b4fd8"/>
+              <!-- body -->
+              <rect x="30" y="95" width="52" height="48" rx="11" fill="#4f5fd4"/>
+              <rect x="10" y="99" width="24" height="12" rx="6" fill="#4f5fd4"/>
+              <rect x="78" y="99" width="24" height="12" rx="6" fill="#4f5fd4"/>
+              <!-- hands -->
+              <ellipse cx="17" cy="111" rx="9" ry="7" fill="#f6a623"/>
+              <ellipse cx="95" cy="111" rx="9" ry="7" fill="#f6a623"/>
+              <!-- laptop -->
+              <rect x="22" y="106" width="68" height="40" rx="5" fill="#111827"/>
+              <rect x="24" y="108" width="64" height="36" rx="3" fill="#0d1523"/>
+              <rect x="28" y="112" width="56" height="7" rx="3" fill="#3b4fd8" opacity="0.7"/>
+              <rect x="28" y="122" width="36" height="3" rx="1.5" fill="#0cbfb0" opacity="0.6"/>
+              <rect x="28" y="128" width="44" height="3" rx="1.5" fill="#818cf8" opacity="0.5"/>
+              <rect x="28" y="134" width="30" height="3" rx="1.5" fill="#22c55e" opacity="0.5"/>
+              <!-- neck -->
+              <rect x="48" y="76" width="16" height="22" rx="7" fill="#f6a623"/>
+              <!-- head -->
+              <ellipse cx="56" cy="60" rx="27" ry="26" fill="#f6a623"/>
+              <!-- hair -->
+              <path d="M30 48 Q56 28 82 48 Q82 34 56 28 Q30 34 30 48Z" fill="#92400e"/>
+              <!-- glasses -->
+              <rect x="40" y="53" width="14" height="11" rx="4.5" fill="none" stroke="#92400e" stroke-width="2"/>
+              <rect x="58" y="53" width="14" height="11" rx="4.5" fill="none" stroke="#92400e" stroke-width="2"/>
+              <line x1="54" y1="58" x2="58" y2="58" stroke="#92400e" stroke-width="1.5"/>
+              <!-- eyes -->
+              <circle cx="47" cy="59" r="2.5" fill="#2d1b00"/>
+              <circle cx="65" cy="59" r="2.5" fill="#2d1b00"/>
+              <!-- smile -->
+              <path d="M48 70 Q56 77 64 70" stroke="#92400e" stroke-width="2" fill="none" stroke-linecap="round"/>
+            </g>
+            <!-- Exchange arrow -->
+            <g transform="translate(158,188)">
+              <rect x="0" y="0" width="44" height="28" rx="14" fill="#3b4fd8"/>
+              <text x="22" y="19" text-anchor="middle" fill="white" font-size="14" font-family="Arial">⇄</text>
+            </g>
+            <!-- Person 2 - Right Chair -->
+            <g transform="translate(195,90)">
+              <!-- chair -->
+              <rect x="18" y="155" width="7" height="38" rx="3.5" fill="#065f56"/>
+              <rect x="86" y="155" width="7" height="38" rx="3.5" fill="#065f56"/>
+              <rect x="10" y="165" width="24" height="5" rx="2.5" fill="#0d9488"/>
+              <rect x="78" y="165" width="24" height="5" rx="2.5" fill="#0d9488"/>
+              <rect x="10" y="140" width="92" height="18" rx="7" fill="#0cbfb0"/>
+              <rect x="10" y="100" width="8" height="52" rx="4" fill="#0d9488"/>
+              <rect x="94" y="100" width="8" height="52" rx="4" fill="#0d9488"/>
+              <rect x="10" y="100" width="92" height="12" rx="6" fill="#0cbfb0"/>
+              <!-- body -->
+              <rect x="30" y="95" width="52" height="48" rx="11" fill="#14b8a6"/>
+              <rect x="10" y="99" width="24" height="12" rx="6" fill="#14b8a6"/>
+              <rect x="78" y="99" width="24" height="12" rx="6" fill="#14b8a6"/>
+              <!-- hands -->
+              <ellipse cx="17" cy="111" rx="9" ry="7" fill="#d97706"/>
+              <ellipse cx="95" cy="111" rx="9" ry="7" fill="#d97706"/>
+              <!-- tablet -->
+              <rect x="22" y="106" width="68" height="40" rx="7" fill="#111827"/>
+              <rect x="26" y="110" width="60" height="32" rx="4" fill="#0a0f1e"/>
+              <circle cx="56" cy="124" r="12" fill="#7c3aed" opacity="0.7"/>
+              <circle cx="56" cy="124" r="6" fill="#a78bfa" opacity="0.8"/>
+              <rect x="30" y="120" width="8" height="8" rx="2" fill="#34d399" opacity="0.7"/>
+              <rect x="78" y="120" width="8" height="8" rx="2" fill="#f472b6" opacity="0.7"/>
+              <!-- neck -->
+              <rect x="48" y="76" width="16" height="22" rx="7" fill="#d97706"/>
+              <!-- head -->
+              <ellipse cx="56" cy="60" rx="27" ry="26" fill="#d97706"/>
+              <!-- white hair -->
+              <path d="M30 48 Q56 26 82 48 Q82 32 56 26 Q30 32 30 48Z" fill="#cbd5e1"/>
+              <rect x="26" y="42" width="8" height="20" rx="4" fill="#cbd5e1"/>
+              <rect x="78" y="42" width="8" height="20" rx="4" fill="#cbd5e1"/>
+              <!-- eyes -->
+              <circle cx="47" cy="59" r="2.5" fill="#1e293b"/>
+              <circle cx="65" cy="59" r="2.5" fill="#1e293b"/>
+              <!-- smile + beard -->
+              <path d="M46 70 Q56 78 66 70" stroke="#92400e" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M37 70 Q56 82 75 70 Q68 78 56 80 Q44 78 37 70Z" fill="#94a3b8" opacity="0.55"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <div class="hiw-section">
+    <div class="section-wrapper">
+      <div class="section-tag">Simple Process</div>
+      <div class="section-heading">How Skill Swapping Works</div>
+      <div class="hiw-grid">
+        <div class="hiw-card"><div class="hiw-num">1</div><div class="hiw-icon">👤</div><h3>Create Your Profile</h3><p>Sign up and fill your "Skills I Offer" and "Skills I Want" sections. Be specific for better matches.</p></div>
+        <div class="hiw-card"><div class="hiw-num">2</div><div class="hiw-icon">🤝</div><h3>Smart Match Found</h3><p>Our algorithm finds partners where A needs what B has — and vice versa. True mutual exchange.</p></div>
+        <div class="hiw-card"><div class="hiw-num">3</div><div class="hiw-icon">💬</div><h3>Send Swap Request</h3><p>Send a swap request. If both accept, you're connected with a dedicated chat and scheduling tool.</p></div>
+        <div class="hiw-card"><div class="hiw-num">4</div><div class="hiw-icon">⭐</div><h3>Learn & Rate</h3><p>Schedule live video sessions, exchange knowledge, and rate each other to build trust in the community.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div class="cats-bg">
+    <div class="section-wrapper">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:44px;">
+        <div><div class="section-tag">Explore</div><div class="section-heading" style="margin-bottom:0">Popular Categories</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="showPage('discover')">See All →</button>
+      </div>
+      <div class="cats-grid">
+        <div class="cat-card" onclick="showPage('discover')"><span class="cat-emoji">💻</span><div class="cat-name">Development</div><div class="cat-count">1,240+ Swappers</div></div>
+        <div class="cat-card" onclick="showPage('discover')"><span class="cat-emoji">🎨</span><div class="cat-name">Design</div><div class="cat-count">820+ Swappers</div></div>
+        <div class="cat-card" onclick="showPage('discover')"><span class="cat-emoji">📊</span><div class="cat-name">Marketing</div><div class="cat-count">640+ Swappers</div></div>
+        <div class="cat-card" onclick="showPage('discover')"><span class="cat-emoji">🌍</span><div class="cat-name">Languages</div><div class="cat-count">1,180+ Swappers</div></div>
+        <div class="cat-card" onclick="showPage('discover')"><span class="cat-emoji">📷</span><div class="cat-name">Photography</div><div class="cat-count">420+ Swappers</div></div>
+        <div class="cat-card" onclick="showPage('discover')"><span class="cat-emoji">🎵</span><div class="cat-name">Music</div><div class="cat-count">390+ Swappers</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP SWAPPERS -->
+  <div id="community-section">
+    <div class="section-wrapper">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:44px;">
+        <div><div class="section-tag">Community</div><div class="section-heading" style="margin-bottom:0">Meet Top Swappers</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="showPage('discover')">Browse All →</button>
+      </div>
+      <div class="swappers-grid">
+        <div class="swapper-card">
+          <div class="swapper-banner" style="background:linear-gradient(135deg,#3b4fd8,#6366f1)"></div>
+          <div class="swapper-body">
+            <div class="swapper-av-wrap">
+              <div class="swapper-av"><div class="avatar avatar-md" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:3px solid white">AM</div><div class="swapper-verified">✓</div></div>
+              <span class="badge badge-green">97% Match</span>
+            </div>
+            <div class="swapper-name">Alex M.</div><div class="swapper-role">UI/UX Designer · Delhi</div>
+            <div class="star-row"><span class="stars">★★★★★</span> <span>4.9</span> <span class="text-muted">(128 reviews)</span></div>
+            <div class="chip-label">Offers</div><div class="skill-chips-row"><span class="chip-sm chip-offer">Figma</span><span class="chip-sm chip-offer">Prototyping</span></div>
+            <div class="chip-label" style="margin-top:6px">Wants</div><div class="skill-chips-row"><span class="chip-sm chip-want">React</span><span class="chip-sm chip-want">JS</span></div>
+            <button class="swapper-action" onclick="requireAuth(()=>showPage('messages'))">Request Swap →</button>
+          </div>
+        </div>
+        <div class="swapper-card">
+          <div class="swapper-banner" style="background:linear-gradient(135deg,#0cbfb0,#0891b2)"></div>
+          <div class="swapper-body">
+            <div class="swapper-av-wrap">
+              <div class="swapper-av"><div class="avatar avatar-md" style="background:linear-gradient(135deg,#0cbfb0,#06b6d4);border:3px solid white">NK</div><div class="swapper-verified">✓</div></div>
+              <span class="badge badge-teal">95% Match</span>
+            </div>
+            <div class="swapper-name">Nina K.</div><div class="swapper-role">Full Stack Dev · Mumbai</div>
+            <div class="star-row"><span class="stars">★★★★★</span> <span>4.8</span> <span class="text-muted">(96 reviews)</span></div>
+            <div class="chip-label">Offers</div><div class="skill-chips-row"><span class="chip-sm chip-offer">Python</span><span class="chip-sm chip-offer">Node.js</span></div>
+            <div class="chip-label" style="margin-top:6px">Wants</div><div class="skill-chips-row"><span class="chip-sm chip-want">Marketing</span></div>
+            <button class="swapper-action" onclick="requireAuth(()=>showPage('messages'))">Request Swap →</button>
+          </div>
+        </div>
+        <div class="swapper-card">
+          <div class="swapper-banner" style="background:linear-gradient(135deg,#d97706,#ef4444)"></div>
+          <div class="swapper-body">
+            <div class="swapper-av-wrap">
+              <div class="swapper-av"><div class="avatar avatar-md" style="background:linear-gradient(135deg,#f59e0b,#ef4444);border:3px solid white">RC</div><div class="swapper-verified">✓</div></div>
+              <span class="badge badge-amber">88% Match</span>
+            </div>
+            <div class="swapper-name">Raj C.</div><div class="swapper-role">DevOps Engineer · Pune</div>
+            <div class="star-row"><span class="stars">★★★★★</span> <span>4.7</span> <span class="text-muted">(74 reviews)</span></div>
+            <div class="chip-label">Offers</div><div class="skill-chips-row"><span class="chip-sm chip-offer">Docker</span><span class="chip-sm chip-offer">AWS</span></div>
+            <div class="chip-label" style="margin-top:6px">Wants</div><div class="skill-chips-row"><span class="chip-sm chip-want">English</span><span class="chip-sm chip-want">Spanish</span></div>
+            <button class="swapper-action" onclick="requireAuth(()=>showPage('messages'))">Request Swap →</button>
+          </div>
+        </div>
+        <div class="swapper-card">
+          <div class="swapper-banner" style="background:linear-gradient(135deg,#059669,#0d9488)"></div>
+          <div class="swapper-body">
+            <div class="swapper-av-wrap">
+              <div class="swapper-av"><div class="avatar avatar-md" style="background:linear-gradient(135deg,#10b981,#0cbfb0);border:3px solid white">SP</div><div class="swapper-verified">✓</div></div>
+              <span class="badge badge-green">92% Match</span>
+            </div>
+            <div class="swapper-name">Sara P.</div><div class="swapper-role">Growth Marketer · Bangalore</div>
+            <div class="star-row"><span class="stars">★★★★½</span> <span>4.7</span> <span class="text-muted">(62 reviews)</span></div>
+            <div class="chip-label">Offers</div><div class="skill-chips-row"><span class="chip-sm chip-offer">SEO</span><span class="chip-sm chip-offer">Analytics</span></div>
+            <div class="chip-label" style="margin-top:6px">Wants</div><div class="skill-chips-row"><span class="chip-sm chip-want">Graphic Design</span></div>
+            <button class="swapper-action" onclick="requireAuth(()=>showPage('messages'))">Request Swap →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <div class="testi-bg">
+    <div class="section-wrapper">
+      <div class="section-tag">Community Voices</div>
+      <div class="section-heading">Real stories. Real growth.</div>
+      <div class="testi-grid">
+        <div class="testi-card"><div class="testi-stars">★★★★★</div><p class="testi-quote">"I swapped my UI design skills with a developer. Within 4 months, I built my first full-stack app — completely for free. SkillSwap literally changed my career."</p><div class="testi-user"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">JM</div><div class="testi-info"><strong>Jessica M.</strong><span>UI/UX → Full-Stack Developer</span></div></div></div>
+        <div class="testi-card"><div class="testi-stars">★★★★★</div><p class="testi-quote">"The matching algorithm is spot on. I found a native French speaker who needed digital marketing. We meet weekly and it has been absolutely incredible."</p><div class="testi-user"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#0cbfb0,#0891b2)">TB</div><div class="testi-info"><strong>Thomas B.</strong><span>Marketer learning French</span></div></div></div>
+        <div class="testi-card"><div class="testi-stars">★★★★★</div><p class="testi-quote">"Not only did I learn Python, I also improved my own teaching skills. The live class feature makes it so easy to schedule and run sessions. Absolutely love it."</p><div class="testi-user"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#d97706,#dc2626)">AG</div><div class="testi-info"><strong>Amanda G.</strong><span>Data Analyst & Python Tutor</span></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <h2>Ready to start swapping?</h2>
+    <p>Join 18,500+ people already trading skills and building careers — completely free.</p>
+    <div class="cta-btns">
+      <button class="btn btn-white btn-lg" onclick="openModal('signup')">Create Free Profile</button>
+      <button class="btn btn-lg" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.4)" onclick="showPage('discover')">Browse Skills First</button>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-logo"><div class="nav-logo-mark" style="width:28px;height:28px;font-size:14px">⇄</div> SkillSwap</div>
+        <p class="footer-desc">The world's largest skill swapping community. Learn anything, teach what you know, grow together.</p>
+        <div class="footer-socials"><div class="footer-social">🐦</div><div class="footer-social">💼</div><div class="footer-social">📷</div></div>
+      </div>
+      <div class="footer-col"><div class="footer-col-title">Platform</div><ul><li><a href="#">Browse Skills</a></li><li><a href="#">How it Works</a></li><li><a href="#">Live Classes</a></li><li><a href="#">Success Stories</a></li></ul></div>
+      <div class="footer-col"><div class="footer-col-title">Resources</div><ul><li><a href="#">Blog</a></li><li><a href="#">Community Guidelines</a></li><li><a href="#">Help Center</a></li><li><a href="#">Safety Tips</a></li></ul></div>
+      <div class="footer-col"><div class="footer-col-title">Stay Updated</div><div class="footer-subscribe"><input type="email" placeholder="your@email.com"><button>Subscribe →</button></div></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 SkillSwap. All rights reserved.</span><div style="display:flex;gap:20px"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div></div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE: DISCOVER
+═══════════════════════════════════════════ -->
+<div class="page" id="page-discover">
+  <div class="discover-header">
+    <div class="discover-header-inner">
+      <h1>Discover Skills to Swap</h1>
+      <p>Browse thousands of experts ready to trade knowledge with you.</p>
+      <div class="discover-search-bar" style="max-width:680px">
+        <input type="text" placeholder="🔍  What do you want to learn?" value="Web Development" style="flex:1;border:none;outline:none;padding:14px 18px;font-size:14px;font-family:var(--font-body)">
+        <select style="border:none;outline:none;padding:0 14px;font-size:13px;color:var(--text-secondary);background:white;cursor:pointer;font-family:var(--font-body);border-left:1px solid var(--border)"><option>📍 Remote</option><option>📍 Delhi</option><option>📍 Mumbai</option><option>📍 Bangalore</option></select>
+        <button style="background:var(--indigo);color:white;border:none;padding:0 24px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-body)">Search</button>
+      </div>
+      <div class="discover-stats-row" style="margin-top:20px">
+        <div class="disc-pill"><strong>12K+</strong><span>Active Mentors</span></div>
+        <div class="disc-pill"><strong>450+</strong><span>Skill Categories</span></div>
+        <div class="disc-pill"><strong>96%</strong><span>Success Rate</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="discover-body">
+    <div class="filter-panel">
+      <div class="filter-panel-header"><div class="filter-title">Filters</div><span class="filter-clear">Clear All</span></div>
+      <div class="filter-section">
+        <div class="filter-section-title">Skill Level</div>
+        <label class="check-item"><input type="checkbox" checked><label>Beginner</label></label>
+        <label class="check-item"><input type="checkbox"><label>Intermediate</label></label>
+        <label class="check-item"><input type="checkbox"><label>Advanced</label></label>
+        <label class="check-item"><input type="checkbox"><label>Expert</label></label>
+      </div>
+      <div class="filter-section">
+        <div class="filter-section-title">Availability</div>
+        <label class="check-item"><input type="checkbox" checked><label>Weekdays</label></label>
+        <label class="check-item"><input type="checkbox" checked><label>Weekends</label></label>
+        <label class="check-item"><input type="checkbox"><label>Evenings</label></label>
+      </div>
+      <div class="filter-section">
+        <div class="filter-section-title">Format</div>
+        <label class="radio-item"><input type="radio" name="fmt" checked><label>Remote (Video Call)</label></label>
+        <label class="radio-item"><input type="radio" name="fmt"><label>In-Person</label></label>
+        <label class="radio-item"><input type="radio" name="fmt"><label>Any</label></label>
+      </div>
+      <div class="filter-section">
+        <div class="toggle-row"><label>Verified Only</label><label class="tgl"><input type="checkbox" checked><span class="tgl-track"></span></label></div>
+      </div>
+    </div>
+    <div>
+      <div class="results-header">
+        <div class="results-count">Showing <strong>24 results</strong> for "Web Development"</div>
+        <div class="sort-row">Sort by: <select><option>Highest Rated</option><option>Most Popular</option><option>Newest</option></select></div>
+      </div>
+      <div class="skill-cards-grid">
+        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(99,102,241,0.1)">⚛️</div><div class="skill-card-title">Frontend React</div><div class="skill-card-meta"><span>👥 124 Mentors</span><span>⭐ 4.9 (340)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-high text-sm">High</span></div><div class="demand-track"><div class="demand-fill d-fill-high"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#6366f1">A</div><div class="mini-av" style="background:#0cbfb0">B</div><div class="mini-av" style="background:#f59e0b">C</div><div class="mini-av" style="background:#ef4444;font-size:8px">+5</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('messages'))">View →</button></div></div>
+        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(12,191,176,0.1)">🐍</div><div class="skill-card-title">Python Backend</div><div class="skill-card-meta"><span>👥 95 Mentors</span><span>⭐ 4.5 (120)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-med text-sm">Medium</span></div><div class="demand-track"><div class="demand-fill d-fill-med"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#0cbfb0">D</div><div class="mini-av" style="background:#7c3aed">E</div><div class="mini-av" style="background:#dc2626;font-size:8px">+6</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
+        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(246,166,35,0.1)">🎨</div><div class="skill-card-title">UI/UX Design</div><div class="skill-card-meta"><span>👥 66 Mentors</span><span>⭐ 4.2 (920)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-vhigh text-sm">Very High</span></div><div class="demand-track"><div class="demand-fill d-fill-vhigh"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#d97706">F</div><div class="mini-av" style="background:#6366f1">G</div><div class="mini-av" style="background:#0cbfb0;font-size:8px">+26</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
+        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(234,179,8,0.1)">🟡</div><div class="skill-card-title">JavaScript Basics</div><div class="skill-card-meta"><span>👥 110 Mentors</span><span>⭐ 4.7 (512)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-high text-sm">High</span></div><div class="demand-track"><div class="demand-fill d-fill-high"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#ca8a04">H</div><div class="mini-av" style="background:#4f46e5;font-size:8px">+5</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
+        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(6,182,212,0.1)">🗄️</div><div class="skill-card-title">SQL & Databases</div><div class="skill-card-meta"><span>👥 65 Mentors</span><span>⭐ 4.5 (120)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-med text-sm">Medium</span></div><div class="demand-track"><div class="demand-fill d-fill-med"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#0891b2">J</div><div class="mini-av" style="background:#9333ea;font-size:8px">+6</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
+        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(16,185,129,0.1)">📱</div><div class="skill-card-title">Mobile App Dev</div><div class="skill-card-meta"><span>👥 56 Mentors</span><span>⭐ 4.2 (120)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-high text-sm">High</span></div><div class="demand-track"><div class="demand-fill d-fill-high"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#059669">L</div><div class="mini-av" style="background:#7c3aed;font-size:8px">+6</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
+      </div>
+      <div class="pagination" style="margin-top:28px">
+        <button class="pg">‹</button><button class="pg active">1</button><button class="pg">2</button><button class="pg">3</button><button class="pg">4</button><button class="pg">›</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE: DASHBOARD
+═══════════════════════════════════════════ -->
+<div class="page" id="page-dashboard">
+  <div class="dash-layout">
+    <div class="dash-sidebar">
+      <div class="dash-nav">
+        <div class="dash-nav-section">
+          <div class="dash-nav-label">Main</div>
+          <button class="dash-link active" onclick="highlightDash(this)"><span class="dash-link-icon">🏠</span> Home</button>
+          <button class="dash-link" onclick="highlightDash(this)"><span class="dash-link-icon">⭐</span> My Skills</button>
+          <button class="dash-link" onclick="highlightDash(this)"><span class="dash-link-icon">📬</span> Requests <span class="dash-badge">3</span></button>
+          <button class="dash-link" onclick="showPage('messages')"><span class="dash-link-icon">💬</span> Messages <span class="dash-badge" style="background:var(--indigo)">2</span></button>
+          <button class="dash-link" onclick="showPage('live')"><span class="dash-link-icon">📅</span> Live Classes</button>
+          <button class="dash-link" onclick="highlightDash(this)"><span class="dash-link-icon">🔍</span> Discover</button>
+        </div>
+        <div class="dash-nav-section">
+          <div class="dash-nav-label">Account</div>
+          <button class="dash-link" onclick="highlightDash(this)"><span class="dash-link-icon">👤</span> Profile</button>
+          <button class="dash-link" onclick="highlightDash(this)"><span class="dash-link-icon">⚙️</span> Settings</button>
+          <button class="dash-link" onclick="doLogout()" style="color:var(--red)"><span class="dash-link-icon">🚪</span> Log Out</button>
+        </div>
+      </div>
+      <div class="dash-user-card">
+        <div class="dash-user-inner">
+          <div class="avatar avatar-sm" id="dash-av" style="background:linear-gradient(135deg,#3b4fd8,#0cbfb0)">SJ</div>
+          <div class="dash-user-info"><div class="name" id="dash-name">Sarah J.</div><div class="role">Mentor · 4.8 ⭐</div></div>
+        </div>
+        <div class="profile-progress-label"><span>Profile</span><span>52%</span></div>
+        <div class="profile-progress-bar"><div class="profile-progress-fill" style="width:52%"></div></div>
+      </div>
+    </div>
+
+    <div class="dash-main">
+      <div class="dash-topbar">
+        <div class="dash-welcome"><h2 id="dash-greeting">Welcome back, Sarah! 👋</h2><p>Here's what's happening with your skill swaps today.</p></div>
+        <div class="dash-actions">
+          <div class="dash-search"><span>🔍</span><input type="text" placeholder="Search requests…"></div>
+          <button class="btn btn-primary btn-sm" onclick="showPage('live')">📅 + New Session</button>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-col">
+          <!-- Upcoming sessions -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">Upcoming Sessions</div><button class="card-link" onclick="showPage('live')">View All →</button></div>
+            <div class="session-row">
+              <div class="session-icon-wrap" style="background:rgba(59,79,216,0.1)">🎨</div>
+              <div class="session-info"><div class="session-title">UI/UX Design Principles</div><div class="session-meta">with Alex M. • Tomorrow, 11:00 AM</div></div>
+              <div class="session-actions-row">
+                <button class="sess-btn sess-btn-primary" onclick="openVcall('Alex M.','UI/UX Design Session')">Join Call 🎥</button>
+              </div>
+            </div>
+            <div class="session-row">
+              <div class="session-icon-wrap" style="background:rgba(12,191,176,0.1)">🐍</div>
+              <div class="session-info"><div class="session-title">Python Backend Setup</div><div class="session-meta">with Raj C. • Thursday, 3:00 PM</div></div>
+              <div class="session-actions-row">
+                <button class="sess-btn sess-btn-ghost" onclick="showPage('live')">Reschedule</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pending swap requests -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">Pending Swap Requests <span class="badge badge-red" style="margin-left:6px">3</span></div><button class="card-link">See All</button></div>
+            <div class="req-item">
+              <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">MK</div>
+              <div class="req-info"><div class="req-name">Maria K.</div><div class="req-skill">Offers: Spanish • Wants: Data Science</div></div>
+              <div class="req-btns"><button class="req-accept" onclick="acceptRequest(this)">✓ Accept</button><button class="req-decline" onclick="this.closest('.req-item').remove();showToast('❌ Request declined.')">✕</button></div>
+            </div>
+            <div class="req-item">
+              <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#0cbfb0,#0891b2)">JL</div>
+              <div class="req-info"><div class="req-name">James L.</div><div class="req-skill">Offers: Photography • Wants: Marketing</div></div>
+              <div class="req-btns"><button class="req-accept" onclick="acceptRequest(this)">✓ Accept</button><button class="req-decline" onclick="this.closest('.req-item').remove();showToast('❌ Request declined.')">✕</button></div>
+            </div>
+            <div class="req-item">
+              <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#d97706,#f59e0b)">OP</div>
+              <div class="req-info"><div class="req-name">Omar P.</div><div class="req-skill">Offers: French • Wants: UI/UX Design</div></div>
+              <div class="req-btns"><button class="req-accept" onclick="acceptRequest(this)">✓ Accept</button><button class="req-decline" onclick="this.closest('.req-item').remove();showToast('❌ Request declined.')">✕</button></div>
+            </div>
+          </div>
+
+          <!-- Recommended mentors -->
+          <div class="card">
+            <div class="card-header"><div><div class="card-title">Recommended Matches</div><p style="font-size:12px;color:var(--text-muted);margin-top:2px">Based on your skills — people who need what you offer and offer what you need</p></div><button class="card-link" onclick="showPage('discover')">See All →</button></div>
+            <div class="mentor-grid">
+              <div class="mentor-mini-card">
+                <div class="mm-head"><div class="mm-av"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#f59e0b,#10b981)">MT</div><div class="mm-verified">✓</div></div><div><div class="mm-name">Marcus T.</div><div class="mm-rating">⭐ 4.5 · 175 reviews</div></div></div>
+                <div class="mm-skills"><span class="mm-skill-tag">React</span><span class="mm-skill-tag">JS</span><span class="mm-skill-tag">Tailwind</span></div>
+                <div class="mm-compat"><div class="mm-compat-label"><span>Compatibility</span><span style="font-weight:700;color:var(--navy)">95%</span></div><div class="mm-compat-track"><div class="mm-compat-fill" style="width:95%"></div></div></div>
+                <button class="mm-btn" onclick="showPage('messages');showToast('✉️ Swap request sent to Marcus!')">Request Swap</button>
+              </div>
+              <div class="mentor-mini-card">
+                <div class="mm-head"><div class="mm-av"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)">ER</div><div class="mm-verified">✓</div></div><div><div class="mm-name">Elena R.</div><div class="mm-rating">⭐ 4.5 · 955 reviews</div></div></div>
+                <div class="mm-skills"><span class="mm-skill-tag">Node.js</span><span class="mm-skill-tag">MongoDB</span></div>
+                <div class="mm-compat"><div class="mm-compat-label"><span>Compatibility</span><span style="font-weight:700;color:var(--navy)">97%</span></div><div class="mm-compat-track"><div class="mm-compat-fill" style="width:97%"></div></div></div>
+                <button class="mm-btn" onclick="showPage('messages');showToast('✉️ Swap request sent to Elena!')">Request Swap</button>
+              </div>
+              <div class="mentor-mini-card">
+                <div class="mm-head"><div class="mm-av"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#0cbfb0,#0891b2)">JW</div><div class="mm-verified">✓</div></div><div><div class="mm-name">James W.</div><div class="mm-rating">⭐ 4.7 · 2,123 reviews</div></div></div>
+                <div class="mm-skills"><span class="mm-skill-tag">Figma</span><span class="mm-skill-tag">Prototype</span></div>
+                <div class="mm-compat"><div class="mm-compat-label"><span>Compatibility</span><span style="font-weight:700;color:var(--navy)">75%</span></div><div class="mm-compat-track"><div class="mm-compat-fill" style="width:75%"></div></div></div>
+                <button class="mm-btn" onclick="showPage('messages');showToast('✉️ Swap request sent to James!')">Request Swap</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div class="dash-col">
+          <div class="activity-card">
+            <div class="card-header" style="margin-bottom:12px"><div class="card-title">Your Activity</div><span class="badge badge-teal" style="background:rgba(12,191,176,0.2)">This Week</span></div>
+            <div class="mini-sparkline"><div class="spark-bar" style="height:30%"></div><div class="spark-bar" style="height:50%"></div><div class="spark-bar hi" style="height:70%"></div><div class="spark-bar" style="height:45%"></div><div class="spark-bar hi" style="height:85%"></div><div class="spark-bar hi" style="height:65%"></div><div class="spark-bar hi" style="height:100%"></div></div>
+            <div class="act-stat-row"><span class="act-label">Hours Swapped</span><span class="act-value">24.5</span></div>
+            <div class="act-stat-row"><span class="act-label">Active Swaps</span><span class="act-value">3</span></div>
+            <div class="act-stat-row"><span class="act-label">Pending Requests</span><span class="act-value">3</span></div>
+            <div class="act-stat-row"><span class="act-label">Avg. Rating</span><span class="act-value">⭐ 4.8</span></div>
+            <div class="act-stat-row" style="border:none"><span class="act-label">Skills Completed</span><span class="act-value">2</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px">Quick Actions</div>
+            <button class="qa-btn" onclick="showPage('discover')">🔍 Browse New Skills</button>
+            <button class="qa-btn" onclick="showPage('messages')">💬 Open Messages</button>
+            <button class="qa-btn" onclick="showPage('live')">📅 Schedule a Session</button>
+            <button class="qa-btn" onclick="showToast('👤 Profile editor coming soon!')">✏️ Complete Profile (52%)</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px">Skills You Offer</div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px"><span class="chip-sm chip-offer">Figma</span><span class="chip-sm chip-offer">UI/UX</span><span class="chip-sm chip-offer">Prototyping</span><span class="chip-sm chip-offer">User Research</span></div>
+            <div class="card-title" style="margin-bottom:10px;font-size:13px">Skills You Want</div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px"><span class="chip-sm chip-want">React</span><span class="chip-sm chip-want">Python</span><span class="chip-sm chip-want">Data Science</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE: MESSAGES
+═══════════════════════════════════════════ -->
+<div class="page" id="page-messages">
+  <div class="msg-layout">
+    <!-- Contacts panel -->
+    <div class="contacts-panel">
+      <div class="contacts-top">
+        <h3>Messages</h3>
+        <div class="contacts-search"><span>🔍</span><input type="text" placeholder="Search conversations…"></div>
+      </div>
+      <div class="contacts-tabs">
+        <button class="ctab active">All</button>
+        <button class="ctab">Active Swaps</button>
+        <button class="ctab">Requests</button>
+      </div>
+      <div class="contacts-list">
+        <div class="contact-row active" onclick="selectContact(this,'Marcus T.','React Hooks Session','linear-gradient(135deg,#f59e0b,#10b981)','MT')">
+          <div class="contact-av-wrap"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#f59e0b,#10b981)">MT</div><div class="contact-status-dot cs-online"></div></div>
+          <div class="contact-row-info"><div class="contact-row-top"><span class="contact-row-name">Marcus T.</span><span class="contact-row-time">2m ago</span></div><div class="contact-row-last">Sure! Let me share the React docs link 📚</div></div>
+          <span class="unread-badge" style="position:static;margin-left:6px">2</span>
+        </div>
+        <div class="contact-row" onclick="selectContact(this,'Elena R.','Node.js Deep Dive','linear-gradient(135deg,#8b5cf6,#ec4899)','ER')">
+          <div class="contact-av-wrap"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)">ER</div><div class="contact-status-dot cs-online"></div></div>
+          <div class="contact-row-info"><div class="contact-row-top"><span class="contact-row-name">Elena R.</span><span class="contact-row-time">1h ago</span></div><div class="contact-row-last">The session was really helpful, thanks!</div></div>
+        </div>
+        <div class="contact-row" onclick="selectContact(this,'James W.','Figma Masterclass','linear-gradient(135deg,#0cbfb0,#0891b2)','JW')">
+          <div class="contact-av-wrap"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#0cbfb0,#0891b2)">JW</div><div class="contact-status-dot cs-away"></div></div>
+          <div class="contact-row-info"><div class="contact-row-top"><span class="contact-row-name">James W.</span><span class="contact-row-time">3h ago</span></div><div class="contact-row-last">Can we reschedule to Friday?</div></div>
+        </div>
+        <div class="contact-row" onclick="selectContact(this,'Alex M.','UX Portfolio Review','linear-gradient(135deg,#4f46e5,#7c3aed)','AM')">
+          <div class="contact-av-wrap"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">AM</div><div class="contact-status-dot cs-offline"></div></div>
+          <div class="contact-row-info"><div class="contact-row-top"><span class="contact-row-name">Alex M.</span><span class="contact-row-time">Yesterday</span></div><div class="contact-row-last">Sent you the Figma file 🎨</div></div>
+        </div>
+        <div class="contact-row" onclick="selectContact(this,'Nina K.','Python Bootcamp','linear-gradient(135deg,#dc2626,#ea580c)','NK')">
+          <div class="contact-av-wrap"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#dc2626,#ea580c)">NK</div><div class="contact-status-dot cs-offline"></div></div>
+          <div class="contact-row-info"><div class="contact-row-top"><span class="contact-row-name">Nina K.</span><span class="contact-row-time">2d ago</span></div><div class="contact-row-last">Your Python explanation was great!</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat pane -->
+    <div class="chat-pane">
+      <div class="chat-topbar">
+        <div class="chat-user-block">
+          <div class="chat-user-av"><div class="avatar avatar-md" id="chat-contact-av" style="background:linear-gradient(135deg,#f59e0b,#10b981)">MT</div><div class="chat-user-online-dot"></div></div>
+          <div><div class="chat-user-name" id="chat-contact-name">Marcus T.</div><div class="chat-user-status" id="chat-contact-status">● Online — General Engineer</div></div>
+        </div>
+        <div class="chat-toolbar">
+          <button class="chat-tool-btn" title="Voice call" onclick="showToast('📞 Voice call starting…')">📞</button>
+          <button class="chat-tool-btn" title="Video call" id="vcall-start-btn" onclick="openVcall(document.getElementById('chat-contact-name').innerText, document.getElementById('chat-session-title').innerText||'Skill Session')">📹</button>
+          <button class="chat-tool-btn" title="Attach file" onclick="showToast('📎 File attachment UI coming soon!')">📎</button>
+          <button class="schedule-session-btn" onclick="showPage('live')">📅 Schedule Session</button>
+        </div>
+      </div>
+
+      <div class="messages-scroll" id="messages-scroll">
+        <div class="date-separator"><span>Today</span></div>
+
+        <div class="msg-group">
+          <div class="avatar avatar-sm msg-av" id="chat-msg-av" style="background:linear-gradient(135deg,#f59e0b,#10b981)">MT</div>
+          <div class="msg-bubbles">
+            <div class="msg-bubble-item">Hey Sarah! I checked your profile and I'm genuinely impressed with your UI/UX work. I'd love to swap — I can teach you React in exchange for Figma lessons! 🚀</div>
+            <div class="swap-proposal">
+              <div class="swap-prop-title">⇄ Skill Swap Proposal</div>
+              <div class="swap-prop-detail"><strong>Marcus</strong> teaches <span class="text-indigo font-semibold">React.js + Hooks</span> ↔ <strong>Sarah</strong> teaches <span style="color:var(--teal-dim);font-weight:600">Figma + Design Systems</span><br>Weekly sessions • 90 min each</div>
+              <div class="swap-prop-actions"><button class="swap-accept" onclick="acceptSwap(this)">✓ Accept Swap</button><button class="swap-decline" onclick="this.closest('.swap-proposal').remove();showToast('❌ Swap proposal declined.')">✕ Decline</button></div>
+            </div>
+            <div class="msg-time">10:24 AM</div>
+          </div>
+        </div>
+
+        <div class="msg-group mine">
+          <div class="avatar avatar-sm msg-av" style="background:linear-gradient(135deg,var(--indigo),var(--teal))">SJ</div>
+          <div class="msg-bubbles">
+            <div class="msg-bubble-item">That sounds amazing Marcus! I've been wanting to learn React for ages. I'd love to help you with Figma and design systems. Let's do it! 🎉</div>
+            <div class="msg-time">10:31 AM ✓✓</div>
+          </div>
+        </div>
+
+        <div class="msg-group">
+          <div class="avatar avatar-sm msg-av" style="background:linear-gradient(135deg,#f59e0b,#10b981)">MT</div>
+          <div class="msg-bubbles">
+            <div class="msg-bubble-item">Perfect! Should we start with the basics this week? I can walk you through hooks and component architecture. What time works for you?</div>
+            <div class="msg-time">10:35 AM</div>
+          </div>
+        </div>
+
+        <div class="msg-group mine">
+          <div class="avatar avatar-sm msg-av" style="background:linear-gradient(135deg,var(--indigo),var(--teal))">SJ</div>
+          <div class="msg-bubbles">
+            <div class="msg-bubble-item">How about Thursday at 11 AM? We could do 90 min — first hour React hooks, last 30 min I'll walk you through Auto Layout and components in Figma! 💡</div>
+            <div class="msg-time">10:38 AM ✓✓</div>
+          </div>
+        </div>
+
+        <div class="msg-group">
+          <div class="avatar avatar-sm msg-av" style="background:linear-gradient(135deg,#f59e0b,#10b981)">MT</div>
+          <div class="msg-bubbles">
+            <div class="msg-bubble-item">Thursday 11 AM works great! I've scheduled it in the system. You'll get a reminder 30 min before the session.</div>
+            <div class="msg-bubble-item">Here's the React docs I'd recommend starting with beforehand 👇<br><a href="#" style="color:var(--indigo);text-decoration:underline;font-size:13px">react.dev/learn</a></div>
+            <div class="msg-time">10:42 AM</div>
+          </div>
+        </div>
+
+        <div class="msg-group mine">
+          <div class="avatar avatar-sm msg-av" style="background:linear-gradient(135deg,var(--indigo),var(--teal))">SJ</div>
+          <div class="msg-bubbles">
+            <div class="msg-bubble-item">Thanks! Sending you the Figma community file I'll use for our design session too. See you Thursday! 📐</div>
+            <div class="msg-time">Just now · ✓</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-wrap">
+        <div class="chat-input-inner">
+          <div class="chat-input-tools">
+            <button class="ci-tool" title="Attach" onclick="showToast('📎 Attach files coming soon!')">📎</button>
+            <button class="ci-tool" title="Emoji">😊</button>
+            <button class="ci-tool" title="Schedule session" onclick="showPage('live')">📅</button>
+          </div>
+          <input class="ci-input" id="ci" placeholder="Type a message…" onkeydown="sendMessage(event)">
+          <button class="ci-send" onclick="sendMessage({key:'Enter'})">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile side panel -->
+    <div class="profile-panel">
+      <div>
+        <div class="pp-section-title">Contact Info</div>
+        <div class="pp-profile">
+          <div class="pp-av-wrap"><div class="avatar avatar-lg" id="pp-av" style="background:linear-gradient(135deg,#f59e0b,#10b981)">MT</div></div>
+          <div class="pp-name" id="pp-name">Marcus T.</div>
+          <div class="pp-title" id="pp-title">General Engineer · ✓ Verified</div>
+          <div style="margin-top:8px"><span class="badge badge-green"><span class="dot-online"></span> Online</span></div>
+        </div>
+      </div>
+      <div class="pp-stats">
+        <div class="pp-stat"><span class="pp-stat-val">⭐ 4.5</span><span class="pp-stat-label">Rating</span></div>
+        <div class="pp-stat"><span class="pp-stat-val">175</span><span class="pp-stat-label">Reviews</span></div>
+        <div class="pp-stat"><span class="pp-stat-val">32h</span><span class="pp-stat-label">Swapped</span></div>
+        <div class="pp-stat"><span class="pp-stat-val">95%</span><span class="pp-stat-label">Compat.</span></div>
+      </div>
+      <div>
+        <div class="pp-section-title">Skills Offered</div>
+        <div class="pp-skills"><span class="pp-skill">React</span><span class="pp-skill">JavaScript</span><span class="pp-skill">Tailwind</span></div>
+      </div>
+      <div>
+        <div class="pp-section-title">Skills Wanted</div>
+        <div class="pp-skills"><span class="chip-sm chip-want" style="font-size:11px">Figma</span><span class="chip-sm chip-want" style="font-size:11px">UI Design</span></div>
+      </div>
+      <div>
+        <div class="pp-section-title">Upcoming Session</div>
+        <div class="pp-upcoming">
+          <div class="pp-upcoming-title" id="chat-session-title">React Hooks Deep Dive</div>
+          <div class="pp-upcoming-time">📅 Thursday, Apr 4 · 11:00 AM</div>
+          <div class="pp-upcoming-time" style="margin-top:3px">⏱ 90 minutes</div>
+        </div>
+        <button class="join-call-btn" onclick="openVcall('Marcus T.','React Hooks Deep Dive')">📹 Join Video Call</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE: LIVE CLASSES
+═══════════════════════════════════════════ -->
+<div class="page" id="page-live">
+  <div class="live-header">
+    <div class="live-header-inner">
+      <h1>📅 Live Classes</h1>
+      <p>Schedule 1-on-1 sessions with your swap partners. Both of you can propose, confirm, and join video calls.</p>
+    </div>
+  </div>
+
+  <div class="live-body">
+    <!-- Schedule form -->
+    <div>
+      <div class="schedule-form-card">
+        <div class="schedule-form-title">Schedule a New Session</div>
+        <div class="schedule-form-sub">Pick a partner, skill topic, date and time. Both users get notified instantly.</div>
+
+        <div class="input-group">
+          <label class="input-label">Session Topic / Skill</label>
+          <input class="input-field" id="sched-topic" placeholder="e.g. React Hooks, Figma Auto Layout, Spanish Basics…">
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Search Your Swap Partner</label>
+          <div class="input-with-icon"><span class="input-icon">🔍</span><input class="input-field" id="sched-partner-search" placeholder="Type a name…" oninput="searchPartner(this.value)"></div>
+          <div id="partner-results"></div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Pick a Date</label>
+          <div class="calendar-row">
+            <div class="cal-day-label">Su</div><div class="cal-day-label">Mo</div><div class="cal-day-label">Tu</div><div class="cal-day-label">We</div><div class="cal-day-label">Th</div><div class="cal-day-label">Fr</div><div class="cal-day-label">Sa</div>
+          </div>
+          <div class="calendar-row" id="cal-grid"></div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Pick a Time Slot</label>
+          <div class="time-slots" id="time-slots">
+            <div class="time-slot past">9:00 AM</div><div class="time-slot past">9:30 AM</div><div class="time-slot past">10:00 AM</div>
+            <div class="time-slot" onclick="selectTime(this)">11:00 AM</div>
+            <div class="time-slot taken">11:30 AM</div>
+            <div class="time-slot" onclick="selectTime(this)">12:00 PM</div>
+            <div class="time-slot" onclick="selectTime(this)">1:00 PM</div>
+            <div class="time-slot" onclick="selectTime(this)">2:00 PM</div>
+            <div class="time-slot taken">3:00 PM</div>
+            <div class="time-slot" onclick="selectTime(this)">3:30 PM</div>
+            <div class="time-slot" onclick="selectTime(this)">4:00 PM</div>
+            <div class="time-slot" onclick="selectTime(this)">5:00 PM</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="input-group" style="margin-bottom:0">
+            <label class="input-label">Duration</label>
+            <select class="input-field" id="sched-duration"><option>30 minutes</option><option selected>60 minutes</option><option>90 minutes</option><option>2 hours</option></select>
+          </div>
+          <div class="input-group" style="margin-bottom:0">
+            <label class="input-label">Format</label>
+            <select class="input-field"><option>Video Call</option><option>In-Person</option></select>
+          </div>
+        </div>
+
+        <button class="form-schedule-btn" onclick="scheduleSession()">📅 Schedule Session & Notify Partner</button>
+      </div>
+    </div>
+
+    <!-- Right: upcoming classes -->
+    <div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">Your Upcoming Sessions</div><span class="badge badge-indigo" id="session-count-badge">2 sessions</span></div>
+        <div class="upcoming-classes" id="upcoming-sessions-list">
+          <div class="class-card">
+            <div class="class-card-header">
+              <div><div class="class-title">React Hooks Deep Dive</div><span class="badge badge-indigo">Confirmed</span></div>
+            </div>
+            <div class="class-participants">
+              <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#f59e0b,#10b981)">MT</div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-left:8px">with <strong>Marcus T.</strong></div>
+            </div>
+            <div class="class-meta-row"><span class="class-meta-item">📅 Thu Apr 4</span><span class="class-meta-item">⏰ 11:00 AM</span><span class="class-meta-item">⏱ 90 min</span><span class="class-meta-item">📹 Video</span></div>
+            <div class="class-actions"><button class="join-live-btn" onclick="openVcall('Marcus T.','React Hooks Deep Dive')">📹 Join Call</button><button class="class-cancel-btn" onclick="cancelSession(this)">✕ Cancel</button></div>
+          </div>
+          <div class="class-card">
+            <div class="class-card-header">
+              <div><div class="class-title">Python Backend Setup</div><span class="badge badge-amber">Pending Confirm</span></div>
+            </div>
+            <div class="class-participants">
+              <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">RC</div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-left:8px">with <strong>Raj C.</strong></div>
+            </div>
+            <div class="class-meta-row"><span class="class-meta-item">📅 Thu Apr 4</span><span class="class-meta-item">⏰ 3:00 PM</span><span class="class-meta-item">⏱ 60 min</span><span class="class-meta-item">📹 Video</span></div>
+            <div class="class-actions"><button class="join-live-btn upcoming" onclick="openVcall('Raj C.','Python Backend Setup')">📹 Join Call</button><button class="class-cancel-btn" onclick="cancelSession(this)">✕ Cancel</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px">Session History</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:var(--r)"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">AM</div><div style="flex:1"><div style="font-weight:600;font-size:13px">Figma Auto Layout</div><div style="font-size:11px;color:var(--text-muted)">with Alex M. • Mar 29 • 90 min</div></div><span class="badge badge-green">Completed</span></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:var(--r)"><div class="avatar avatar-sm" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)">ER</div><div style="flex:1"><div style="font-weight:600;font-size:13px">Node.js APIs</div><div style="font-size:11px;color:var(--text-muted)">with Elena R. • Mar 25 • 60 min</div></div><span class="badge badge-green">Completed</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TOAST ═══════════════ -->
+<div class="toast hidden" id="toast"><span class="toast-icon" id="toast-icon">✅</span><span id="toast-msg">Done!</span><span class="toast-close" onclick="this.parentElement.classList.add('hidden')">✕</span></div>
+
+
+</body>
+</html>
