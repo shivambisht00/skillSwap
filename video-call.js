@@ -17,7 +17,6 @@
 
     cacheDom() {
       if (this.cacheReady) return true;
-
       this.overlay = document.getElementById('vcall-overlay');
       this.remoteVideo = document.getElementById('vcall-remote-video');
       this.localVideo = document.getElementById('vcall-local-video');
