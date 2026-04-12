@@ -789,7 +789,7 @@
             <span class="logo-mark">SS</span>
             <span>SkillSwap</span>
           </div>
-          <a class="return-home" href="./skillswap-v2.html">Back to site</a>
+          <a class="return-home" href="./index.html">Back to site</a>
         </div>
 
         <div class="brand-copy">
@@ -996,6 +996,7 @@
     const subtitle = document.getElementById("form-subtitle");
     const errorNote = document.getElementById("error-note");
     const successNote = document.getElementById("success-note");
+    const API_BASE = window.SKILLSWAP_API_BASE || "http://localhost:8080/SkillSwap";
 
     const strengthLabel = document.getElementById("strength-label");
     const strengthNote = document.getElementById("strength-note");
@@ -1067,6 +1068,48 @@
       };
     }
 
+    function mapBackendUser(user, fallbackEmail = "") {
+      if (!user) return buildAppUser(fallbackEmail || "");
+      const firstName = (user.firstName || "").trim();
+      const lastName = (user.lastName || "").trim();
+      const fullName = (user.fullName || `${firstName} ${lastName}`.trim() || buildAppUser(fallbackEmail).name).trim();
+      return {
+        name: fullName,
+        initials: user.avatarInitials || fullName.split(" ").map((w) => w.charAt(0)).join("").slice(0, 2).toUpperCase() || "M",
+        email: user.email || fallbackEmail,
+        color: user.avatarColor || "linear-gradient(135deg,#3b4fd8,#0cbfb0)"
+      };
+    }
+
+    function splitFullName(fullName) {
+      const cleaned = (fullName || "").trim().replace(/\s+/g, " ");
+      const parts = cleaned.split(" ").filter(Boolean);
+      if (parts.length <= 1) {
+        return { firstName: parts[0] || "", lastName: "Member" };
+      }
+      return {
+        firstName: parts[0],
+        lastName: parts.slice(1).join(" ")
+      };
+    }
+
+    async function parseApiResponse(response) {
+      const raw = await response.text();
+      if (!raw) return {};
+      try {
+        return JSON.parse(raw);
+      } catch (_) {
+        return { success: false, message: raw.trim() || "Unexpected server response." };
+      }
+    }
+
+    function resolveApiErrorMessage(response, data, fallbackMessage) {
+      if (data && typeof data.message === "string" && data.message.trim()) return data.message.trim();
+      if (response.status === 404) return "API endpoint not found. Check backend base URL.";
+      if (response.status >= 500) return "Backend server error. Please try again.";
+      return fallbackMessage;
+    }
+
     const socialProviderMap = {
       google: {
         label: "Google",
@@ -1123,7 +1166,7 @@
         }
 
         setTimeout(() => {
-          window.location.href = "./skillswap-v2.html#dashboard";
+          window.location.href = "./index.html#dashboard";
         }, 500);
       }, 450);
     }
@@ -1258,7 +1301,7 @@
       paintStrength(score);
     });
 
-    loginForm.addEventListener("submit", (event) => {
+    loginForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       hideNotice();
 
@@ -1273,6 +1316,7 @@
 
       const remember = document.getElementById("remember").checked;
       const email = document.getElementById("login-email").value.trim();
+      const pass = document.getElementById("login-pass").value;
 
       if (remember) {
         localStorage.setItem("skillswap_saved_email", email);
@@ -1280,20 +1324,39 @@
         localStorage.removeItem("skillswap_saved_email");
       }
 
-      setTimeout(() => {
+      try {
+        const response = await fetch(`${API_BASE}/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: pass })
+        });
+        const data = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+          showNotice("error", resolveApiErrorMessage(response, data, "Login failed. Please try again."));
+          return;
+        }
+
+        const appUser = mapBackendUser(data.user, email);
+        localStorage.setItem("skillswap_autologin_payload", JSON.stringify(appUser));
+        localStorage.setItem("skillswap_post_login_target", "dashboard");
         showNotice("success", "Login successful. Redirecting to SkillSwap...");
+
+        setTimeout(() => {
+          window.location.href = "./index.html#dashboard";
+        }, 700);
+      } catch (error) {
+        const msg = error && error.name === "TypeError"
+          ? "Cannot reach backend API. Make sure backend is running on localhost:8080."
+          : "Unexpected login error. Please try again.";
+        showNotice("error", msg);
+      } finally {
         loginBtn.disabled = false;
         loginBtn.textContent = "Log in to SkillSwap";
-        setTimeout(() => {
-          const appUser = buildAppUser(email);
-          localStorage.setItem("skillswap_autologin_payload", JSON.stringify(appUser));
-          localStorage.setItem("skillswap_post_login_target", "dashboard");
-          window.location.href = "./skillswap-v2.html#dashboard";
-        }, 900);
-      }, 750);
+      }
     });
 
-    signupForm.addEventListener("submit", (event) => {
+    signupForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       hideNotice();
 
@@ -1307,13 +1370,45 @@
       const signupBtn = document.getElementById("signup-btn");
       signupBtn.disabled = true;
       signupBtn.textContent = "Creating account...";
+      const fullName = document.getElementById("signup-name").value.trim();
+      const email = document.getElementById("signup-email").value.trim();
+      const pass = document.getElementById("signup-pass").value;
+      const { firstName, lastName } = splitFullName(fullName);
 
-      setTimeout(() => {
+      try {
+        const response = await fetch(`${API_BASE}/api/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firstName,
+            lastName,
+            email,
+            password: pass
+          })
+        });
+        const data = await parseApiResponse(response);
+
+        if (!response.ok || !data.success) {
+          showNotice("error", resolveApiErrorMessage(response, data, "Signup failed. Please try again."));
+          return;
+        }
+
+        const appUser = mapBackendUser(data.user, email);
+        localStorage.setItem("skillswap_autologin_payload", JSON.stringify(appUser));
+        localStorage.setItem("skillswap_post_login_target", "dashboard");
+        showNotice("success", "Account created. Redirecting to SkillSwap...");
+        setTimeout(() => {
+          window.location.href = "./index.html#dashboard";
+        }, 700);
+      } catch (error) {
+        const msg = error && error.name === "TypeError"
+          ? "Cannot reach backend API. Make sure backend is running on localhost:8080."
+          : "Unexpected signup error. Please try again.";
+        showNotice("error", msg);
+      } finally {
         signupBtn.disabled = false;
         signupBtn.textContent = "Create free account";
-        setMode("login");
-        showNotice("success", "Account created. You can now log in.");
-      }, 850);
+      }
     });
 
     document.querySelectorAll("#login-email, #login-pass, #signup-name, #signup-email, #signup-pass, #signup-confirm").forEach((input) => {
