@@ -392,6 +392,8 @@ footer { background: var(--navy-2); color: white; padding: 56px 32px 0; }
 .d-fill-high { width: 80%; background: var(--green); }
 .d-fill-vhigh { width: 95%; background: var(--amber); }
 .d-fill-med { width: 60%; background: var(--indigo); }
+.d-fill-low { width: 30%; background: #9ca3af; }
+.d-low { color: #6b7280; }
 .skill-card-footer { display: flex; align-items: center; justify-content: space-between; }
 .mini-avatars { display: flex; }
 .mini-av { width: 26px; height: 26px; border-radius: 50%; border: 2px solid white; margin-left: -7px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: white; }
