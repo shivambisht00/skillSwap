@@ -19,6 +19,7 @@ const APP = {
 const SESSION_KEY = 'skillswap_session';
 const HANDOFF_KEY = 'skillswap_autologin_payload';
 const TARGET_KEY = 'skillswap_post_login_target';
+const API_BASE = window.SKILLSWAP_API_BASE || 'http://localhost:8080/SkillSwap';
 
 const DEMO_USERS = {
   'demo@skillswap.com': { pass: 'demo123', name: 'Sarah J.', initials: 'SJ', color: 'linear-gradient(135deg,#3b4fd8,#0cbfb0)' }
@@ -93,6 +94,7 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + target);
   if (el) el.classList.add('active');
+  if (target === 'discover') { setTimeout(discoverSearch, 10); }
   document.querySelectorAll('.nav-link').forEach(a => {
     a.classList.remove('active');
     if (a.dataset && a.dataset.page === target) a.classList.add('active');
@@ -136,18 +138,54 @@ function switchTab(tab) {
   document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
 }
 
-function doLogin() {
+async function parseApiResponse(response) {
+  const raw = await response.text();
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch (_) {
+    return { success: false, message: raw.trim() || 'Unexpected server response.' };
+  }
+}
+
+function resolveApiErrorMessage(response, data, fallbackMessage) {
+  if (data && typeof data.message === 'string' && data.message.trim()) return data.message.trim();
+  if (response.status === 404) return 'API endpoint not found. Check backend base URL.';
+  if (response.status >= 500) return 'Backend server error. Please try again.';
+  return fallbackMessage;
+}
+
+async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-error');
   if (!email || !pass) { errEl.textContent='Please fill in all fields.'; errEl.classList.remove('hidden'); return; }
-  // Demo login - accept any email/pass combo (simulated auth)
-  const name = email.split('@')[0].replace(/\./g,' ').replace(/\b\w/g, c => c.toUpperCase());
-  const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  loginSuccess({ name, initials, email, color: 'linear-gradient(135deg,#3b4fd8,#0cbfb0)' });
+  errEl.classList.add('hidden');
+
+  try {
+    const response = await fetch(`${API_BASE}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await parseApiResponse(response);
+
+    if (!response.ok || !data.success) {
+      errEl.textContent = resolveApiErrorMessage(response, data, 'Login failed. Please try again.');
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    loginSuccess(mapBackendUser(data.user));
+  } catch (error) {
+    errEl.textContent = error && error.name === 'TypeError'
+      ? 'Cannot reach backend API. Make sure backend is running on localhost:8080.'
+      : 'Unexpected login error. Please try again.';
+    errEl.classList.remove('hidden');
+  }
 }
 
-function doSignup() {
+async function doSignup() {
   const fname = document.getElementById('signup-fname').value.trim();
   const lname = document.getElementById('signup-lname').value.trim();
   const email = document.getElementById('signup-email').value.trim();
@@ -155,12 +193,46 @@ function doSignup() {
   const errEl = document.getElementById('signup-error');
   if (!fname || !lname || !email || !pass) { errEl.textContent='Please fill in all fields.'; errEl.classList.remove('hidden'); return; }
   if (pass.length < 6) { errEl.textContent='Password must be at least 6 characters.'; errEl.classList.remove('hidden'); return; }
-  const name = fname + ' ' + lname;
-  const initials = (fname[0] + lname[0]).toUpperCase();
-  closeModal();
-  // Show onboarding
-  APP.pendingUser = { name, initials, email, color: 'linear-gradient(135deg,#3b4fd8,#0cbfb0)' };
-  startOnboarding();
+  errEl.classList.add('hidden');
+
+  try {
+    const response = await fetch(`${API_BASE}/api/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: fname,
+        lastName: lname,
+        email,
+        password: pass
+      })
+    });
+    const data = await parseApiResponse(response);
+
+    if (!response.ok || !data.success) {
+      errEl.textContent = resolveApiErrorMessage(response, data, 'Signup failed. Please try again.');
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    closeModal();
+    APP.pendingUser = mapBackendUser(data.user);
+    startOnboarding();
+  } catch (error) {
+    errEl.textContent = error && error.name === 'TypeError'
+      ? 'Cannot reach backend API. Make sure backend is running on localhost:8080.'
+      : 'Unexpected signup error. Please try again.';
+    errEl.classList.remove('hidden');
+  }
+}
+
+function mapBackendUser(user) {
+  if (!user) return { name: 'Member', initials: 'M', email: '', color: 'linear-gradient(135deg,#3b4fd8,#0cbfb0)' };
+  return {
+    name: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Member',
+    initials: user.avatarInitials || 'M',
+    email: user.email || '',
+    color: user.avatarColor || 'linear-gradient(135deg,#3b4fd8,#0cbfb0)'
+  };
 }
 
 function doSocialLogin(provider = 'google', mode = 'login', buttonEl = null) {
@@ -553,6 +625,7 @@ function pg_click(el) {
 ═══════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   initCalendar();
+  discoverSearch(); // render all skill cards on load
   const handoffAuthRaw = localStorage.getItem(HANDOFF_KEY);
   const savedSessionRaw = localStorage.getItem(SESSION_KEY);
   const initialRoute = getHashRoute();
@@ -587,3 +660,172 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.ctab').forEach(t => t.addEventListener('click', function(){ document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('active')); this.classList.add('active'); }));
   document.querySelectorAll('.modal-tab[id^=tab]').forEach(t => {});
 });
+
+/* ═══════════════════════════════════
+   SKILLS DATA (for Discover page)
+═══════════════════════════════════ */
+const ALL_SKILLS = [
+  { title:'Frontend React', icon:'⚛️', color:'rgba(99,102,241,0.1)', mentors:124, rating:4.9, reviews:340, demand:'High', demandClass:'d-high', demandFill:'d-fill-high', level:'Intermediate', availability:['Weekdays','Evenings'], format:'Remote', verified:true, category:'Development', tags:['react','frontend','web dev','javascript'] },
+  { title:'Python Backend', icon:'🐍', color:'rgba(12,191,176,0.1)', mentors:95, rating:4.5, reviews:120, demand:'Medium', demandClass:'d-med', demandFill:'d-fill-med', level:'Beginner', availability:['Weekdays','Weekends'], format:'Remote', verified:true, category:'Development', tags:['python','backend','django','flask'] },
+  { title:'UI/UX Design', icon:'🎨', color:'rgba(246,166,35,0.1)', mentors:66, rating:4.2, reviews:920, demand:'Very High', demandClass:'d-vhigh', demandFill:'d-fill-vhigh', level:'Beginner', availability:['Weekends','Evenings'], format:'Remote', verified:true, category:'Design', tags:['ui','ux','design','figma','prototyping'] },
+  { title:'JavaScript Basics', icon:'🟡', color:'rgba(234,179,8,0.1)', mentors:110, rating:4.7, reviews:512, demand:'High', demandClass:'d-high', demandFill:'d-fill-high', level:'Beginner', availability:['Weekdays','Weekends','Evenings'], format:'Remote', verified:true, category:'Development', tags:['javascript','js','web','basics'] },
+  { title:'SQL & Databases', icon:'🗄️', color:'rgba(6,182,212,0.1)', mentors:65, rating:4.5, reviews:120, demand:'Medium', demandClass:'d-med', demandFill:'d-fill-med', level:'Intermediate', availability:['Weekdays'], format:'Remote', verified:true, category:'Development', tags:['sql','database','mysql','postgresql'] },
+  { title:'Mobile App Dev', icon:'📱', color:'rgba(16,185,129,0.1)', mentors:56, rating:4.2, reviews:120, demand:'High', demandClass:'d-high', demandFill:'d-fill-high', level:'Advanced', availability:['Weekends','Evenings'], format:'Remote', verified:true, category:'Development', tags:['mobile','android','ios','flutter','react native'] },
+  { title:'Java Programming', icon:'☕', color:'rgba(234,88,12,0.1)', mentors:88, rating:4.6, reviews:280, demand:'High', demandClass:'d-high', demandFill:'d-fill-high', level:'Intermediate', availability:['Weekdays','Weekends'], format:'Remote', verified:true, category:'Development', tags:['java','oop','spring','backend','programming'] },
+  { title:'Data Science', icon:'📊', color:'rgba(139,92,246,0.1)', mentors:72, rating:4.8, reviews:410, demand:'Very High', demandClass:'d-vhigh', demandFill:'d-fill-vhigh', level:'Advanced', availability:['Weekdays','Evenings'], format:'Remote', verified:true, category:'Data', tags:['data science','machine learning','ai','python','pandas'] },
+  { title:'Digital Marketing', icon:'📣', color:'rgba(239,68,68,0.1)', mentors:43, rating:4.3, reviews:180, demand:'High', demandClass:'d-high', demandFill:'d-fill-high', level:'Beginner', availability:['Weekends'], format:'Any', verified:false, category:'Marketing', tags:['marketing','seo','social media','digital'] },
+  { title:'Spanish Language', icon:'🇪🇸', color:'rgba(245,158,11,0.1)', mentors:39, rating:4.7, reviews:230, demand:'Medium', demandClass:'d-med', demandFill:'d-fill-med', level:'Beginner', availability:['Weekdays','Weekends','Evenings'], format:'Remote', verified:true, category:'Languages', tags:['spanish','language','speaking'] },
+  { title:'Photography', icon:'📷', color:'rgba(244,114,182,0.1)', mentors:28, rating:4.4, reviews:95, demand:'Medium', demandClass:'d-med', demandFill:'d-fill-med', level:'Beginner', availability:['Weekends'], format:'In-Person', verified:false, category:'Photography', tags:['photography','camera','editing','lightroom'] },
+  { title:'Music Production', icon:'🎵', color:'rgba(16,185,129,0.1)', mentors:22, rating:4.6, reviews:140, demand:'Low', demandClass:'d-low', demandFill:'d-fill-low', level:'Intermediate', availability:['Weekends','Evenings'], format:'Remote', verified:true, category:'Music', tags:['music','production','beats','daw','ableton'] },
+  { title:'DevOps & Cloud', icon:'☁️', color:'rgba(14,165,233,0.1)', mentors:51, rating:4.8, reviews:195, demand:'Very High', demandClass:'d-vhigh', demandFill:'d-fill-vhigh', level:'Expert', availability:['Weekdays'], format:'Remote', verified:true, category:'Development', tags:['devops','cloud','aws','docker','kubernetes'] },
+  { title:'Graphic Design', icon:'✏️', color:'rgba(168,85,247,0.1)', mentors:60, rating:4.5, reviews:310, demand:'High', demandClass:'d-high', demandFill:'d-fill-high', level:'Beginner', availability:['Weekdays','Weekends'], format:'Remote', verified:true, category:'Design', tags:['graphic design','illustrator','photoshop','adobe'] },
+  { title:'Machine Learning', icon:'🤖', color:'rgba(99,102,241,0.1)', mentors:45, rating:4.9, reviews:260, demand:'Very High', demandClass:'d-vhigh', demandFill:'d-fill-vhigh', level:'Expert', availability:['Weekdays','Evenings'], format:'Remote', verified:true, category:'Data', tags:['machine learning','ml','ai','tensorflow','deep learning'] },
+  { title:'French Language', icon:'🇫🇷', color:'rgba(59,130,246,0.1)', mentors:31, rating:4.5, reviews:110, demand:'Medium', demandClass:'d-med', demandFill:'d-fill-med', level:'Beginner', availability:['Weekends','Evenings'], format:'Remote', verified:false, category:'Languages', tags:['french','language','grammar'] },
+  { title:'Video Editing', icon:'🎬', color:'rgba(234,179,8,0.1)', mentors:37, rating:4.4, reviews:155, demand:'High', demandClass:'d-high', demandFill:'d-fill-high', level:'Intermediate', availability:['Weekends'], format:'Remote', verified:true, category:'Design', tags:['video','editing','premiere','final cut','youtube'] },
+  { title:'Node.js & Express', icon:'🟢', color:'rgba(34,197,94,0.1)', mentors:68, rating:4.6, reviews:200, demand:'High', demandClass:'d-high', demandFill:'d-fill-high', level:'Intermediate', availability:['Weekdays','Weekends'], format:'Remote', verified:true, category:'Development', tags:['nodejs','express','javascript','backend','api'] },
+  { title:'Excel & Spreadsheets', icon:'📗', color:'rgba(22,163,74,0.1)', mentors:82, rating:4.3, reviews:450, demand:'Medium', demandClass:'d-med', demandFill:'d-fill-med', level:'Beginner', availability:['Weekdays'], format:'Remote', verified:false, category:'Business', tags:['excel','spreadsheet','data','microsoft'] },
+  { title:'Public Speaking', icon:'🎤', color:'rgba(239,68,68,0.1)', mentors:25, rating:4.7, reviews:175, demand:'Medium', demandClass:'d-med', demandFill:'d-fill-med', level:'Beginner', availability:['Weekdays','Weekends'], format:'In-Person', verified:true, category:'Business', tags:['public speaking','presentation','communication'] },
+  { title:'Figma & Prototyping', icon:'🖌️', color:'rgba(236,72,153,0.1)', mentors:54, rating:4.8, reviews:290, demand:'Very High', demandClass:'d-vhigh', demandFill:'d-fill-vhigh', level:'Intermediate', availability:['Weekdays','Evenings'], format:'Remote', verified:true, category:'Design', tags:['figma','design','ui','prototype','wireframe'] },
+  { title:'C++ Programming', icon:'⚙️', color:'rgba(107,114,128,0.1)', mentors:41, rating:4.4, reviews:130, demand:'Medium', demandClass:'d-med', demandFill:'d-fill-med', level:'Advanced', availability:['Weekdays'], format:'Remote', verified:true, category:'Development', tags:['c++','programming','dsa','competitive'] },
+  { title:'Content Writing', icon:'✍️', color:'rgba(217,119,6,0.1)', mentors:33, rating:4.2, reviews:215, demand:'Medium', demandClass:'d-med', demandFill:'d-fill-med', level:'Beginner', availability:['Weekdays','Weekends','Evenings'], format:'Remote', verified:false, category:'Marketing', tags:['writing','content','blog','copywriting','seo'] },
+  { title:'Flutter & Dart', icon:'🐦', color:'rgba(6,182,212,0.1)', mentors:48, rating:4.5, reviews:160, demand:'High', demandClass:'d-high', demandFill:'d-fill-high', level:'Intermediate', availability:['Weekends','Evenings'], format:'Remote', verified:true, category:'Development', tags:['flutter','dart','mobile','android','ios'] },
+];
+
+const AVATAR_COLORS = ['#6366f1','#0cbfb0','#f59e0b','#ef4444','#8b5cf6','#10b981','#0891b2','#d97706','#dc2626','#7c3aed'];
+
+function renderSkillCard(skill) {
+  const avs = AVATAR_COLORS.slice(0,3).map((c,i) => `<div class="mini-av" style="background:${c}">${String.fromCharCode(65+i)}</div>`).join('');
+  return `
+    <div class="skill-card" 
+         data-title="${skill.title.toLowerCase()}" 
+         data-tags="${skill.tags.join(',')}" 
+         data-level="${skill.level.toLowerCase()}" 
+         data-format="${skill.format.toLowerCase()}" 
+         data-verified="${skill.verified}" 
+         data-availability="${skill.availability.join(',').toLowerCase()}"
+         data-mentors="${skill.mentors}"
+         data-rating="${skill.rating}">
+      <div class="skill-card-verified">
+        ${skill.verified ? '<span class="badge badge-green">✓ Verified</span>' : '<span class="badge" style="background:#f3f4f6;color:#6b7280">Unverified</span>'}
+      </div>
+      <div class="skill-icon-wrap" style="background:${skill.color}">${skill.icon}</div>
+      <div class="skill-card-title">${skill.title}</div>
+      <div class="skill-card-meta"><span>👥 ${skill.mentors} Mentors</span><span>⭐ ${skill.rating} (${skill.reviews})</span></div>
+      <div class="demand-row">
+        <div class="demand-label-row">
+          <span style="color:var(--text-muted);font-size:11px">Trending Demand</span>
+          <span class="demand-level-text ${skill.demandClass} text-sm">${skill.demand}</span>
+        </div>
+        <div class="demand-track"><div class="demand-fill ${skill.demandFill}"></div></div>
+      </div>
+      <div class="skill-card-footer">
+        <div class="mini-avatars">${avs}<div class="mini-av" style="background:#ef4444;font-size:8px">+${skill.mentors - 3}</div></div>
+        <button class="view-btn" onclick="requireAuth(()=>viewSkillDetail('${skill.title}'))">View →</button>
+      </div>
+    </div>`;
+}
+
+function discoverSearch() {
+  const query = (document.getElementById('discover-search-input')?.value || '').toLowerCase().trim();
+  const verifiedOnly = document.getElementById('f-verified')?.checked;
+  const levels = {
+    beginner: document.getElementById('f-beginner')?.checked,
+    intermediate: document.getElementById('f-intermediate')?.checked,
+    advanced: document.getElementById('f-advanced')?.checked,
+    expert: document.getElementById('f-expert')?.checked,
+  };
+  const avail = {
+    weekdays: document.getElementById('f-weekdays')?.checked,
+    weekends: document.getElementById('f-weekends')?.checked,
+    evenings: document.getElementById('f-evenings')?.checked,
+  };
+  const fmtEl = document.querySelector('input[name="fmt"]:checked');
+  const fmt = fmtEl ? fmtEl.value : 'any';
+  const sort = document.getElementById('discover-sort')?.value || 'rated';
+
+  let results = ALL_SKILLS.filter(skill => {
+    // Text search
+    if (query) {
+      const inTitle = skill.title.toLowerCase().includes(query);
+      const inTags = skill.tags.some(t => t.includes(query));
+      if (!inTitle && !inTags) return false;
+    }
+    // Verified filter
+    if (verifiedOnly && !skill.verified) return false;
+    // Level filter
+    const lvl = skill.level.toLowerCase();
+    if (!levels[lvl]) return false;
+    // Format filter
+    if (fmt !== 'any' && fmt !== '') {
+      if (fmt === 'remote' && skill.format !== 'Remote') return false;
+      if (fmt === 'inperson' && skill.format !== 'In-Person') return false;
+    }
+    // Availability filter (show if ANY selected availability matches)
+    const anyAvailChecked = avail.weekdays || avail.weekends || avail.evenings;
+    if (anyAvailChecked) {
+      const skillAvailLower = skill.availability.map(a => a.toLowerCase());
+      const match = (avail.weekdays && skillAvailLower.includes('weekdays')) ||
+                    (avail.weekends && skillAvailLower.includes('weekends')) ||
+                    (avail.evenings && skillAvailLower.includes('evenings'));
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  if (sort === 'rated') results.sort((a,b) => b.rating - a.rating);
+  else if (sort === 'popular') results.sort((a,b) => b.mentors - a.mentors);
+  else if (sort === 'newest') results.sort((a,b) => b.reviews - a.reviews);
+
+  const grid = document.getElementById('skill-cards-grid');
+  const noResults = document.getElementById('no-results');
+  const countEl = document.getElementById('results-count');
+
+  if (!grid) return;
+
+  if (results.length === 0) {
+    grid.innerHTML = '';
+    noResults.classList.remove('hidden');
+  } else {
+    noResults.classList.add('hidden');
+    grid.innerHTML = results.map(renderSkillCard).join('');
+  }
+
+  const label = query ? `"${query}"` : 'All Skills';
+  if (countEl) countEl.innerHTML = `Showing <strong>${results.length} results</strong> for ${label}`;
+}
+
+function clearDiscoverFilters() {
+  const inp = document.getElementById('discover-search-input');
+  if (inp) inp.value = '';
+  ['f-beginner','f-intermediate','f-advanced','f-expert','f-weekdays','f-weekends','f-evenings','f-verified'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = true;
+  });
+  const anyRadio = document.getElementById('f-any');
+  const remoteRadio = document.getElementById('f-remote');
+  if (remoteRadio) remoteRadio.checked = true;
+  discoverSearch();
+}
+
+function heroSearch() {
+  const val = document.getElementById('hero-search-input')?.value?.trim() || '';
+  showPage('discover');
+  setTimeout(() => {
+    const discInput = document.getElementById('discover-search-input');
+    if (discInput && val) { discInput.value = val; discoverSearch(); }
+    else discoverSearch();
+  }, 50);
+}
+
+function heroSearchQuery(query) {
+  showPage('discover');
+  setTimeout(() => {
+    const discInput = document.getElementById('discover-search-input');
+    if (discInput) { discInput.value = query; discoverSearch(); }
+  }, 50);
+}
+
+function viewSkillDetail(title) {
+  showToast(`📚 Skill profile for "${title}" — opening soon!`);
+}
