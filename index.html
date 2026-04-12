@@ -185,19 +185,19 @@
           <input type="text" placeholder="What do you want to learn? e.g. React, Figma…" id="hero-search-input">
           <div class="hero-search-sep"></div>
           <button class="hero-search-loc">📍 Remote</button>
-          <button class="hero-search-btn" onclick="showPage('discover')">🔍 Search</button>
+          <button class="hero-search-btn" onclick="heroSearch()">🔍 Search</button>
         </div>
         <div class="hero-chips">
           <span class="hero-chip-label">Popular:</span>
-          <span class="hero-chip" onclick="showPage('discover')">Web Dev</span>
-          <span class="hero-chip" onclick="showPage('discover')">UI/UX Design</span>
-          <span class="hero-chip" onclick="showPage('discover')">Python</span>
-          <span class="hero-chip" onclick="showPage('discover')">Marketing</span>
-          <span class="hero-chip" onclick="showPage('discover')">Spanish</span>
+          <span class="hero-chip" onclick="heroSearchQuery('Web Dev')">Web Dev</span>
+          <span class="hero-chip" onclick="heroSearchQuery('UI/UX Design')">UI/UX Design</span>
+          <span class="hero-chip" onclick="heroSearchQuery('Python')">Python</span>
+          <span class="hero-chip" onclick="heroSearchQuery('Marketing')">Marketing</span>
+          <span class="hero-chip" onclick="heroSearchQuery('Spanish')">Spanish</span>
         </div>
         <div class="hero-stats">
-          <div class="hero-stat"><strong>18.5K+</strong><span>Learners</span></div>
-          <div class="hero-stat"><strong>450+</strong><span>Skill Categories</span></div>
+          <div class="hero-stat"><strong>1000+</strong><span>Learners</span></div>
+          <div class="hero-stat"><strong>200+</strong><span>Skill Categories</span></div>
           <div class="hero-stat"><strong>96%</strong><span>Success Rate</span></div>
         </div>
       </div>
@@ -454,9 +454,9 @@
       <h1>Discover Skills to Swap</h1>
       <p>Browse thousands of experts ready to trade knowledge with you.</p>
       <div class="discover-search-bar" style="max-width:680px">
-        <input type="text" placeholder="🔍  What do you want to learn?" value="Web Development" style="flex:1;border:none;outline:none;padding:14px 18px;font-size:14px;font-family:var(--font-body)">
-        <select style="border:none;outline:none;padding:0 14px;font-size:13px;color:var(--text-secondary);background:white;cursor:pointer;font-family:var(--font-body);border-left:1px solid var(--border)"><option>📍 Remote</option><option>📍 Delhi</option><option>📍 Mumbai</option><option>📍 Bangalore</option></select>
-        <button style="background:var(--indigo);color:white;border:none;padding:0 24px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-body)">Search</button>
+        <input type="text" id="discover-search-input" placeholder="🔍  What do you want to learn?" value="" style="flex:1;border:none;outline:none;padding:14px 18px;font-size:14px;font-family:var(--font-body)" oninput="discoverSearch()" onkeydown="if(event.key==='Enter')discoverSearch()">
+        <select id="discover-location-filter" style="border:none;outline:none;padding:0 14px;font-size:13px;color:var(--text-secondary);background:white;cursor:pointer;font-family:var(--font-body);border-left:1px solid var(--border)" onchange="discoverSearch()"><option value="">📍 Remote</option><option value="delhi">📍 Delhi</option><option value="mumbai">📍 Mumbai</option><option value="bangalore">📍 Bangalore</option></select>
+        <button style="background:var(--indigo);color:white;border:none;padding:0 24px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-body)" onclick="discoverSearch()">Search</button>
       </div>
       <div class="discover-stats-row" style="margin-top:20px">
         <div class="disc-pill"><strong>12K+</strong><span>Active Mentors</span></div>
@@ -467,42 +467,43 @@
   </div>
   <div class="discover-body">
     <div class="filter-panel">
-      <div class="filter-panel-header"><div class="filter-title">Filters</div><span class="filter-clear">Clear All</span></div>
+      <div class="filter-panel-header"><div class="filter-title">Filters</div><span class="filter-clear" onclick="clearDiscoverFilters()">Clear All</span></div>
       <div class="filter-section">
         <div class="filter-section-title">Skill Level</div>
-        <label class="check-item"><input type="checkbox" checked><label>Beginner</label></label>
-        <label class="check-item"><input type="checkbox"><label>Intermediate</label></label>
-        <label class="check-item"><input type="checkbox"><label>Advanced</label></label>
-        <label class="check-item"><input type="checkbox"><label>Expert</label></label>
+        <label class="check-item"><input type="checkbox" id="f-beginner" checked onchange="discoverSearch()"><label>Beginner</label></label>
+        <label class="check-item"><input type="checkbox" id="f-intermediate" checked onchange="discoverSearch()"><label>Intermediate</label></label>
+        <label class="check-item"><input type="checkbox" id="f-advanced" checked onchange="discoverSearch()"><label>Advanced</label></label>
+        <label class="check-item"><input type="checkbox" id="f-expert" checked onchange="discoverSearch()"><label>Expert</label></label>
       </div>
       <div class="filter-section">
         <div class="filter-section-title">Availability</div>
-        <label class="check-item"><input type="checkbox" checked><label>Weekdays</label></label>
-        <label class="check-item"><input type="checkbox" checked><label>Weekends</label></label>
-        <label class="check-item"><input type="checkbox"><label>Evenings</label></label>
+        <label class="check-item"><input type="checkbox" id="f-weekdays" checked onchange="discoverSearch()"><label>Weekdays</label></label>
+        <label class="check-item"><input type="checkbox" id="f-weekends" checked onchange="discoverSearch()"><label>Weekends</label></label>
+        <label class="check-item"><input type="checkbox" id="f-evenings" checked onchange="discoverSearch()"><label>Evenings</label></label>
       </div>
       <div class="filter-section">
         <div class="filter-section-title">Format</div>
-        <label class="radio-item"><input type="radio" name="fmt" checked><label>Remote (Video Call)</label></label>
-        <label class="radio-item"><input type="radio" name="fmt"><label>In-Person</label></label>
-        <label class="radio-item"><input type="radio" name="fmt"><label>Any</label></label>
+        <label class="radio-item"><input type="radio" name="fmt" value="remote" id="f-remote" checked onchange="discoverSearch()"><label>Remote (Video Call)</label></label>
+        <label class="radio-item"><input type="radio" name="fmt" value="inperson" id="f-inperson" onchange="discoverSearch()"><label>In-Person</label></label>
+        <label class="radio-item"><input type="radio" name="fmt" value="any" id="f-any" onchange="discoverSearch()"><label>Any</label></label>
       </div>
       <div class="filter-section">
-        <div class="toggle-row"><label>Verified Only</label><label class="tgl"><input type="checkbox" checked><span class="tgl-track"></span></label></div>
+        <div class="toggle-row"><label>Verified Only</label><label class="tgl"><input type="checkbox" id="f-verified" checked onchange="discoverSearch()"><span class="tgl-track"></span></label></div>
       </div>
     </div>
     <div>
       <div class="results-header">
-        <div class="results-count">Showing <strong>24 results</strong> for "Web Development"</div>
-        <div class="sort-row">Sort by: <select><option>Highest Rated</option><option>Most Popular</option><option>Newest</option></select></div>
+        <div class="results-count" id="results-count">Showing <strong>24 results</strong> for "All Skills"</div>
+        <div class="sort-row">Sort by: <select id="discover-sort" onchange="discoverSearch()"><option value="rated">Highest Rated</option><option value="popular">Most Popular</option><option value="newest">Newest</option></select></div>
       </div>
-      <div class="skill-cards-grid">
-        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(99,102,241,0.1)">⚛️</div><div class="skill-card-title">Frontend React</div><div class="skill-card-meta"><span>👥 124 Mentors</span><span>⭐ 4.9 (340)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-high text-sm">High</span></div><div class="demand-track"><div class="demand-fill d-fill-high"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#6366f1">A</div><div class="mini-av" style="background:#0cbfb0">B</div><div class="mini-av" style="background:#f59e0b">C</div><div class="mini-av" style="background:#ef4444;font-size:8px">+5</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('messages'))">View →</button></div></div>
-        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(12,191,176,0.1)">🐍</div><div class="skill-card-title">Python Backend</div><div class="skill-card-meta"><span>👥 95 Mentors</span><span>⭐ 4.5 (120)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-med text-sm">Medium</span></div><div class="demand-track"><div class="demand-fill d-fill-med"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#0cbfb0">D</div><div class="mini-av" style="background:#7c3aed">E</div><div class="mini-av" style="background:#dc2626;font-size:8px">+6</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
-        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(246,166,35,0.1)">🎨</div><div class="skill-card-title">UI/UX Design</div><div class="skill-card-meta"><span>👥 66 Mentors</span><span>⭐ 4.2 (920)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-vhigh text-sm">Very High</span></div><div class="demand-track"><div class="demand-fill d-fill-vhigh"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#d97706">F</div><div class="mini-av" style="background:#6366f1">G</div><div class="mini-av" style="background:#0cbfb0;font-size:8px">+26</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
-        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(234,179,8,0.1)">🟡</div><div class="skill-card-title">JavaScript Basics</div><div class="skill-card-meta"><span>👥 110 Mentors</span><span>⭐ 4.7 (512)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-high text-sm">High</span></div><div class="demand-track"><div class="demand-fill d-fill-high"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#ca8a04">H</div><div class="mini-av" style="background:#4f46e5;font-size:8px">+5</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
-        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(6,182,212,0.1)">🗄️</div><div class="skill-card-title">SQL & Databases</div><div class="skill-card-meta"><span>👥 65 Mentors</span><span>⭐ 4.5 (120)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-med text-sm">Medium</span></div><div class="demand-track"><div class="demand-fill d-fill-med"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#0891b2">J</div><div class="mini-av" style="background:#9333ea;font-size:8px">+6</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
-        <div class="skill-card"><div class="skill-card-verified"><span class="badge badge-green">✓ Verified</span></div><div class="skill-icon-wrap" style="background:rgba(16,185,129,0.1)">📱</div><div class="skill-card-title">Mobile App Dev</div><div class="skill-card-meta"><span>👥 56 Mentors</span><span>⭐ 4.2 (120)</span></div><div class="demand-row"><div class="demand-label-row"><span style="color:var(--text-muted);font-size:11px">Trending Demand</span><span class="demand-level-text d-high text-sm">High</span></div><div class="demand-track"><div class="demand-fill d-fill-high"></div></div></div><div class="skill-card-footer"><div class="mini-avatars"><div class="mini-av" style="background:#059669">L</div><div class="mini-av" style="background:#7c3aed;font-size:8px">+6</div></div><button class="view-btn" onclick="requireAuth(()=>showPage('discover'))">View →</button></div></div>
+      <div class="skill-cards-grid" id="skill-cards-grid">
+        <!-- Dynamically rendered by JS -->
+      </div>
+      <div id="no-results" class="hidden" style="text-align:center;padding:60px 20px;color:var(--text-muted)">
+        <div style="font-size:48px;margin-bottom:16px">🔍</div>
+        <div style="font-size:18px;font-weight:600;color:var(--text-primary);margin-bottom:8px">Koi result nahi mila</div>
+        <div style="font-size:14px">Try different keywords ya filters clear karo</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:16px" onclick="clearDiscoverFilters()">Clear Filters</button>
       </div>
       <div class="pagination" style="margin-top:28px">
         <button class="pg">‹</button><button class="pg active">1</button><button class="pg">2</button><button class="pg">3</button><button class="pg">4</button><button class="pg">›</button>
