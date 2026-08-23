@@ -1,0 +1,254 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.room{min-height:580px;background:#0f1117;border-radius:var(--border-radius-lg);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.video-grid{flex:1;display:grid;gap:3px;padding:3px;background:#000;min-height:360px}
+.tile{background:#1a1d27;border-radius:6px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.tile-av{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:#fff;flex-shrink:0}
+.tile-name{position:absolute;bottom:8px;left:10px;font-size:12px;color:rgba(255,255,255,0.85);font-weight:500;background:rgba(0,0,0,0.45);padding:2px 8px;border-radius:4px}
+.tile-mic-off{position:absolute;top:8px;right:8px;background:rgba(220,50,50,0.8);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.tile-speaking{box-shadow:inset 0 0 0 2.5px #22c87a}
+.tile-host-badge{position:absolute;top:8px;left:10px;background:rgba(100,80,220,0.8);color:#e0d8ff;font-size:10px;font-weight:500;padding:2px 7px;border-radius:4px}
+.controls{background:#16181f;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ctrl-group{display:flex;gap:8px}
+.cbtn{width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.cbtn:hover{background:rgba(255,255,255,0.14)}
+.cbtn.active{background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.35)}
+.cbtn.danger{background:rgba(220,50,50,0.2);border-color:rgba(220,50,50,0.5)}
+.cbtn.danger:hover{background:rgba(220,50,50,0.4)}
+.cbtn.muted{background:rgba(220,50,50,0.2);border-color:rgba(220,50,50,0.5)}
+.timer-wrap{text-align:center}
+.timer{font-size:15px;font-weight:500;color:#fff;font-variant-numeric:tabular-nums}
+.room-label{font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px}
+.join-toast{position:absolute;top:12px;right:12px;background:rgba(22,30,24,0.92);border:1px solid rgba(34,200,122,0.45);color:#22c87a;border-radius:8px;padding:9px 14px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;transform:translateY(-60px);opacity:0;transition:transform .35s cubic-bezier(.22,1,.36,1),opacity .25s;pointer-events:none;max-width:220px;z-index:10}
+.join-toast.show{transform:translateY(0);opacity:1}
+.join-toast-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;flex-shrink:0}
+.sidebar{width:220px;background:#13151d;border-left:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;position:absolute;right:0;top:0;bottom:0;transform:translateX(220px);transition:transform .3s ease;z-index:5}
+.sidebar.open{transform:translateX(0)}
+.sidebar-header{padding:14px 14px 10px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;font-weight:500;color:rgba(255,255,255,0.7);display:flex;justify-content:space-between;align-items:center}
+.sidebar-close{background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:16px;line-height:1}
+.member-list{flex:1;overflow-y:auto;padding:8px 0}
+.member-row{display:flex;align-items:center;gap:10px;padding:8px 14px}
+.member-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.member-info{flex:1;min-width:0}
+.member-name{font-size:12px;font-weight:500;color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.member-status{font-size:10px;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:4px}
+.dot{width:6px;height:6px;border-radius:50%;background:#22c87a;display:inline-block}
+.dot.late{background:#f59e0b}
+.count-badge{background:rgba(100,80,220,0.25);color:#a89fe8;border-radius:10px;font-size:10px;font-weight:600;padding:2px 7px}
+.add-area{padding:10px 14px;border-top:1px solid rgba(255,255,255,0.08)}
+.add-btn{width:100%;border:1px dashed rgba(255,255,255,0.2);background:none;border-radius:6px;color:rgba(255,255,255,0.4);font-size:12px;padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
+.add-btn:hover{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.65)}
+.join-ring{position:absolute;inset:0;border-radius:6px;pointer-events:none;opacity:0}
+.joining{animation:joinpulse .6s ease-out}
+@keyframes joinpulse{0%{opacity:1;box-shadow:inset 0 0 0 0 rgba(34,200,122,0.7)}100%{opacity:0;box-shadow:inset 0 0 0 6px rgba(34,200,122,0)}}
+</style>
+
+<div class="room" id="room">
+  <div class="join-toast" id="jtoast">
+    <div class="join-toast-av" id="jtoast-av"></div>
+    <span id="jtoast-msg">joined the call</span>
+  </div>
+  <div class="video-grid" id="vgrid"></div>
+  <div class="controls">
+    <div class="ctrl-group">
+      <button class="cbtn active" id="mic-btn" title="Mute" onclick="toggleMic()">🎙</button>
+      <button class="cbtn active" id="cam-btn" title="Camera" onclick="toggleCam()">📹</button>
+      <button class="cbtn" title="Share screen" onclick="toast('🖥 Screen sharing started')">🖥</button>
+    </div>
+    <div class="timer-wrap">
+      <div class="timer" id="timer">00:00</div>
+      <div class="room-label" id="rlabel">React Hooks Session</div>
+    </div>
+    <div class="ctrl-group">
+      <button class="cbtn" id="chat-btn" title="Chat" onclick="toast('💬 Chat opened')">💬</button>
+      <button class="cbtn" id="ppl-btn" title="Participants" onclick="toggleSidebar()">👥 <span id="cnt" style="font-size:10px;margin-left:2px;color:#a89fe8"></span></button>
+      <button class="cbtn danger" title="End call" onclick="endCall()">📵</button>
+    </div>
+  </div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span>Participants <span class="count-badge" id="scnt">0</span></span>
+      <button class="sidebar-close" onclick="toggleSidebar()">✕</button>
+    </div>
+    <div class="member-list" id="mlist"></div>
+    <div class="add-area">
+      <button class="add-btn" onclick="addRandom()">+ invite someone</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MEMBERS=[
+  {id:'mt',name:'Marcus T.',initials:'MT',color:'#f59e0b,#10b981',muted:false,host:true,speaking:false},
+  {id:'sj',name:'You (Sarah J.)',initials:'SJ',color:'#6366f1,#14b8a6',muted:false,host:false,speaking:false,self:true},
+  {id:'ar',name:'Anika R.',initials:'AR',color:'#ec4899,#8b5cf6',muted:true,host:false,speaking:false},
+  {id:'dk',name:'Dev K.',initials:'DK',color:'#3b82f6,#06b6d4',muted:false,host:false,speaking:false},
+];
+const POOL=[
+  {id:'lw',name:'Lena W.',initials:'LW',color:'#f97316,#eab308'},
+  {id:'cm',name:'Carlos M.',initials:'CM',color:'#8b5cf6,#ec4899'},
+  {id:'tp',name:'Tara P.',initials:'TP',color:'#22c55e,#0ea5e9'},
+  {id:'rb',name:'Raj B.',initials:'RB',color:'#e11d48,#f97316'},
+  {id:'fn',name:'Freya N.',initials:'FN',color:'#06b6d4,#6366f1'},
+  {id:'oh',name:'Omar H.',initials:'OH',color:'#eab308,#10b981'},
+];
+let active=[...MEMBERS];
+let poolIdx=0;
+let seconds=0;
+let micOn=true,camOn=true;
+let sidebarOpen=false;
+
+function gridCols(n){
+  if(n<=1)return'1fr';
+  if(n<=2)return'1fr 1fr';
+  if(n<=4)return'1fr 1fr';
+  return'1fr 1fr 1fr';
+}
+function gridRows(n){
+  if(n<=2)return'1fr';
+  return'1fr 1fr';
+}
+function render(){
+  const g=document.getElementById('vgrid');
+  const n=active.length;
+  g.style.gridTemplateColumns=gridCols(n);
+  g.style.gridTemplateRows=gridRows(n);
+  g.innerHTML='';
+  active.forEach(m=>{
+    const t=document.createElement('div');
+    t.className='tile'+(m.speaking?' tile-speaking':'');
+    t.id='tile-'+m.id;
+    t.innerHTML=`
+      <div class="tile-av" style="background:linear-gradient(135deg,${m.color})">${m.initials}</div>
+      <div class="tile-name">${m.name}</div>
+      ${m.muted?'<div class="tile-mic-off">🔇</div>':''}
+      ${m.host?'<div class="tile-host-badge">host</div>':''}
+    `;
+    g.appendChild(t);
+  });
+  renderSidebar();
+}
+function renderSidebar(){
+  const ml=document.getElementById('mlist');
+  ml.innerHTML='';
+  active.forEach(m=>{
+    const r=document.createElement('div');
+    r.className='member-row';
+    r.innerHTML=`
+      <div class="member-av" style="background:linear-gradient(135deg,${m.color})">${m.initials}</div>
+      <div class="member-info">
+        <div class="member-name">${m.name}${m.host?' ⭐':''}</div>
+        <div class="member-status"><span class="dot${m.muted?' late':''}"></span>${m.muted?'muted':'speaking'}</div>
+      </div>
+    `;
+    ml.appendChild(r);
+  });
+  const c=active.length;
+  document.getElementById('cnt').textContent=c;
+  document.getElementById('scnt').textContent=c;
+}
+function showJoinToast(member){
+  const t=document.getElementById('jtoast');
+  const av=document.getElementById('jtoast-av');
+  const msg=document.getElementById('jtoast-msg');
+  av.style.background=`linear-gradient(135deg,${member.color})`;
+  av.textContent=member.initials;
+  msg.textContent=`${member.name} joined`;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+function addMember(m){
+  if(active.find(a=>a.id===m.id))return;
+  const newM={...m,muted:false,host:false,speaking:false};
+  active.push(newM);
+  render();
+  showJoinToast(newM);
+}
+function addRandom(){
+  if(poolIdx>=POOL.length){toast('No more members to invite');return;}
+  addMember(POOL[poolIdx++]);
+}
+function toggleMic(){
+  micOn=!micOn;
+  const btn=document.getElementById('mic-btn');
+  btn.textContent=micOn?'🎙':'🔇';
+  btn.className=micOn?'cbtn active':'cbtn muted';
+  const me=active.find(m=>m.self);
+  if(me){me.muted=!micOn;render();}
+}
+function toggleCam(){
+  camOn=!camOn;
+  const btn=document.getElementById('cam-btn');
+  btn.textContent=camOn?'📹':'📷';
+  btn.className=camOn?'cbtn active':'cbtn muted';
+}
+function toggleSidebar(){
+  sidebarOpen=!sidebarOpen;
+  document.getElementById('sidebar').className='sidebar'+(sidebarOpen?' open':'');
+  document.getElementById('ppl-btn').className='cbtn'+(sidebarOpen?' active':'');
+  if(sidebarOpen){
+    const g=document.getElementById('vgrid');
+    g.style.paddingRight='223px';
+  } else {
+    document.getElementById('vgrid').style.paddingRight='3px';
+  }
+}
+function endCall(){
+  const r=document.getElementById('room');
+  r.style.opacity='0';
+  r.style.transition='opacity .4s';
+  setTimeout(()=>{
+    r.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:rgba(255,255,255,0.5);min-height:360px">
+      <div style="font-size:40px">📵</div>
+      <div style="font-size:16px;color:rgba(255,255,255,0.7);font-weight:500">Call ended</div>
+      <div style="font-size:13px">Duration: ${document.getElementById('timer').textContent}</div>
+      <button onclick="location.reload()" style="margin-top:8px;padding:8px 20px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);cursor:pointer;font-size:13px">Rejoin</button>
+    </div>`;
+    r.style.opacity='1';
+  },400);
+}
+let toastTimer=null;
+function toast(msg){
+  const t=document.getElementById('jtoast');
+  const av=document.getElementById('jtoast-av');
+  const m=document.getElementById('jtoast-msg');
+  av.style.background='rgba(255,255,255,0.1)';
+  av.textContent='ℹ';
+  m.textContent=msg;
+  t.style.color='rgba(255,255,255,0.8)';
+  t.style.borderColor='rgba(255,255,255,0.2)';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.classList.remove('show');t.style.color='';t.style.borderColor='';},2500);
+}
+
+setInterval(()=>{
+  seconds++;
+  const m=String(Math.floor(seconds/60)).padStart(2,'0');
+  const s=String(seconds%60).padStart(2,'0');
+  document.getElementById('timer').textContent=`${m}:${s}`;
+},1000);
+
+let speakIdx=0;
+setInterval(()=>{
+  active.forEach(m=>m.speaking=false);
+  if(active.length>0){
+    const i=speakIdx%active.length;
+    if(!active[i].muted)active[i].speaking=true;
+    speakIdx++;
+  }
+  render();
+},2800);
+
+let autoJoinIdx=0;
+const autoJoinDelays=[4000,9000,17000,26000];
+autoJoinDelays.forEach((d,i)=>{
+  setTimeout(()=>{
+    if(i<POOL.length)addMember(POOL[i]);
+  },d);
+});
+
+render();
+</script>
